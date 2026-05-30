@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, ArrowUpRight, ArrowDownRight, ArrowLeftRight, Search, Filter, X, ChevronLeft, ChevronRight, Repeat, ArrowUpDown } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
 import type { Transaction, TransactionType, RecurringInterval } from '@/types';
+import { CURRENCIES } from '@/types';
 import type { TransactionFilterState } from '@/stores/useAppStore';
 import { filterTransactions } from '@/lib/transactionFilters';
 import { paginate } from '@/lib/paginationUtils';
@@ -78,16 +79,22 @@ export function Transactions() {
     recurringInterval: '' as RecurringInterval | '',
   });
 
+  const getAccountCurrency = (accountId: number): string => {
+    const account = accounts?.find(a => a.id === accountId);
+    return account?.currency || defaultCurrency;
+  };
+
   const openNewModal = (type?: TransactionType) => {
+    const firstAccountId = accounts?.[0]?.id || 0;
     setEditingTxn(null);
     setFormErrors({});
     setFormData({
       type: type || 'expense',
-      accountId: accounts?.[0]?.id || 0,
+      accountId: firstAccountId,
       toAccountId: 0,
       categoryId: categories?.find(c => c.type === 'expense')?.id || 0,
       amount: 0,
-      currency: defaultCurrency,
+      currency: getAccountCurrency(firstAccountId),
       date: new Date().toISOString().split('T')[0],
       description: '',
       notes: '',
@@ -583,8 +590,17 @@ export function Transactions() {
             <Select
               label={formData.type === 'transfer' ? t('transactions.transferFrom') : t('common.account')}
               value={String(formData.accountId)}
-              onChange={(e) => { setFormData(prev => ({ ...prev, accountId: Number(e.target.value) })); setFormErrors({}); }}
-              options={accounts?.map(a => ({ value: String(a.id), label: a.name })) || []}
+              onChange={(e) => {
+                const newAccountId = Number(e.target.value);
+                const selectedAccount = accounts?.find(a => a.id === newAccountId);
+                setFormData(prev => ({
+                  ...prev,
+                  accountId: newAccountId,
+                  currency: selectedAccount?.currency || defaultCurrency,
+                }));
+                setFormErrors({});
+              }}
+              options={accounts?.map(a => ({ value: String(a.id), label: `${a.name} (${a.currency})` })) || []}
               error={formErrors.accountId}
             />
             {formData.type === 'transfer' ? (
@@ -608,7 +624,7 @@ export function Transactions() {
 
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label={t('common.amount')}
+              label={`${t('common.amount')} (${formData.currency})`}
               type="number"
               step="0.01"
               min="0.01"
@@ -616,12 +632,15 @@ export function Transactions() {
               onChange={(e) => { setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 })); setFormErrors({}); }}
               error={formErrors.amount}
             />
-            <Input
-              label={t('common.date')}
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.date')}</label>
+              <input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+            </div>
           </div>
 
           <Input

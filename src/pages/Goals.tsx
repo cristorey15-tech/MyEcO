@@ -21,7 +21,7 @@ export function Goals() {
   const { confirm, ConfirmDialog } = useConfirm();
 
   const goals = useLiveQuery(() => db.goals.toArray());
-  const accounts = useLiveQuery(() => db.accounts.where('isArchived').equals(0).toArray());
+  const accounts = useLiveQuery(() => db.accounts.filter(a => !a.isArchived).toArray());
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
