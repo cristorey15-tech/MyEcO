@@ -19,6 +19,11 @@ export async function verifyPin(pin: string, hash: string): Promise<boolean> {
 }
 
 /**
+ * Hash a security answer using SHA-256 (alias for hashPin).
+ */
+export const hashAnswer = hashPin;
+
+/**
  * Check if WebAuthn platform authentication (biometric) is available.
  */
 export async function isBiometricAvailable(): Promise<boolean> {

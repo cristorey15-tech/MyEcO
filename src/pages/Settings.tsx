@@ -6,7 +6,7 @@ import { db, seedCategories } from '@/lib/db';
 import { useAppStore } from '@/stores/useAppStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { useConfirm } from '@/hooks/useConfirm';
-import { hashPin, isBiometricAvailable, registerBiometric, removeBiometricCredential } from '@/lib/auth';
+import { hashPin, hashAnswer, isBiometricAvailable, registerBiometric, removeBiometricCredential } from '@/lib/auth';
 import { fetchAllRates, getLastRateUpdate, needsRefresh, getRateHistory, detectRateDrop } from '@/lib/exchangeRateService';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -97,7 +97,7 @@ function Sparkline({ data, width = 80, height = 24, color = '#2563eb' }: {
 export function Settings() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { defaultCurrency, setDefaultCurrency, resetTour, tourCompleted, resetAllState, userName, setUserName, pinHash, setPinHash, pinLength, setPinLength, lockEnabled, setLockEnabled, biometricEnabled, setBiometricEnabled } = useAppStore();
+  const { defaultCurrency, setDefaultCurrency, resetTour, tourCompleted, resetAllState, userName, setUserName, pinHash, setPinHash, pinLength, setPinLength, lockEnabled, setLockEnabled, biometricEnabled, setBiometricEnabled, securityQuestions, setSecurityQuestions } = useAppStore();
   const { confirm, ConfirmDialog } = useConfirm();
   const categories = useLiveQuery(() => db.categories.toArray());
   const exchangeRates = useLiveQuery(() => db.exchangeRates.toArray());
@@ -126,6 +126,20 @@ export function Settings() {
   const [pinFormErrors, setPinFormErrors] = useState<Record<string, string>>({});
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioRegistered, setBioRegistered] = useState(!!localStorage.getItem('myeco-biometric-credential'));
+
+  // --- Security Questions state ---
+  const [secQModalOpen, setSecQModalOpen] = useState(false);
+  const [secQList, setSecQList] = useState<{ question: string; answer: string }[]>([{ question: '', answer: '' }]);
+  const [secQErrors, setSecQErrors] = useState<Record<string, string>>({});
+
+  const PREDEFINED_QUESTIONS = [
+    { value: 'pet', label: t('security.qPet') },
+    { value: 'city', label: t('security.qCity') },
+    { value: 'mother', label: t('security.qMother') },
+    { value: 'school', label: t('security.qSchool') },
+    { value: 'friend', label: t('security.qFriend') },
+    { value: 'custom', label: t('security.qCustom') },
+  ];
 
   useEffect(() => {
     isBiometricAvailable().then(setBioAvailable);
@@ -190,6 +204,64 @@ export function Settings() {
     setPinModalMode(null);
     setPinForm({ currentPin: '', newPin: '', confirmPin: '' });
     setPinFormErrors({});
+  };
+
+  // --- Security Questions handlers ---
+  const openSecQuestions = () => {
+    // Load existing questions into the form
+    if (securityQuestions.length > 0) {
+      setSecQList(securityQuestions.map(q => ({ question: q.question, answer: '' })));
+    } else {
+      setSecQList([{ question: '', answer: '' }, { question: '', answer: '' }]);
+    }
+    setSecQErrors({});
+    setSecQModalOpen(true);
+  };
+
+  const handleSaveSecQuestions = async () => {
+    const errors: Record<string, string> = {};
+    const validQuestions: { question: string; answerHash: string }[] = [];
+
+    // Build a map of predefined question values to full text labels
+    const predefinedMap: Record<string, string> = {};
+    for (const pq of PREDEFINED_QUESTIONS) {
+      predefinedMap[pq.value] = pq.label;
+    }
+
+    for (let i = 0; i < secQList.length; i++) {
+      const q = secQList[i];
+      const questionKey = `q${i}`;
+      const answerKey = `a${i}`;
+
+      if (!q.question) {
+        // If no question, skip this entry entirely (allow fewer than 2)
+        continue;
+      }
+      if (!q.answer) {
+        errors[answerKey] = t('validation.required');
+      } else if (q.answer.length < 2) {
+        errors[answerKey] = t('security.answerTooShort');
+      } else {
+        // Resolve predefined question values to their full translated text
+        const fullQuestion = predefinedMap[q.question] || q.question;
+        const answerHash = await hashAnswer(q.answer.toLowerCase().trim());
+        validQuestions.push({ question: fullQuestion, answerHash });
+      }
+    }
+
+    if (validQuestions.length === 0 && secQList.some(q => q.question)) {
+      errors['general'] = t('security.atLeastOneQuestion');
+    }
+
+    setSecQErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    setSecurityQuestions(validQuestions);
+    setSecQModalOpen(false);
+    addToast({
+      title: t('security.questionsSaved'),
+      variant: 'success',
+    });
   };
 
   // --- Exchange Rate state ---
@@ -1024,6 +1096,39 @@ export function Settings() {
               )}
             </div>
           </div>
+
+          {/* Security Questions for PIN recovery */}
+          {pinHash && (
+            <div className="pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{t('security.securityQuestions')}</p>
+                  <p className="text-xs text-gray-400">{t('security.securityQuestionsDesc')}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {securityQuestions.length > 0 && (
+                    <Badge variant="info" className="text-xs">
+                      {t('security.questionsCount', { count: securityQuestions.length })}
+                    </Badge>
+                  )}
+                  <Button size="sm" variant="outline" onClick={openSecQuestions}>
+                    <Edit3 className="w-3.5 h-3.5" />
+                    {securityQuestions.length > 0 ? t('common.edit') : t('security.setupQuestions')}
+                  </Button>
+                </div>
+              </div>
+              {securityQuestions.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {securityQuestions.map((q, i) => (
+                    <li key={i} className="flex items-center gap-2 text-xs text-gray-500">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0" />
+                      <span className="truncate">{q.question}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -1285,6 +1390,85 @@ export function Settings() {
           {pinModalMode === 'remove' && (
             <p className="text-sm text-gray-500">{t('security.pinLockDesc')}</p>
           )}
+        </div>
+      </Modal>
+
+      {/* Security Questions Modal */}
+      <Modal
+        isOpen={secQModalOpen}
+        onClose={() => { setSecQModalOpen(false); setSecQErrors({}); }}
+        title={t('security.securityQuestions')}
+        size="lg"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => { setSecQModalOpen(false); setSecQErrors({}); }}>{t('common.cancel')}</Button>
+            <Button onClick={handleSaveSecQuestions}>{t('common.save')}</Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {secQErrors.general && (
+            <p className="text-sm text-danger">{secQErrors.general}</p>
+          )}
+          {secQList.map((q, idx) => (
+            <div key={idx} className="space-y-3 p-4 rounded-lg border border-gray-100 bg-gray-50/50">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                {t('security.questionNumber', { number: idx + 1 })}
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('security.selectQuestion')}</label>
+                <select
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  value={PREDEFINED_QUESTIONS.some(pq => pq.value === q.question) ? q.question : 'custom'}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSecQList(prev => prev.map((item, i) =>
+                      i === idx ? {
+                        ...item,
+                        question: val === 'custom' ? '' : val,
+                      } : item
+                    ));
+                    setSecQErrors({});
+                  }}
+                >
+                  <option value="">{t('common.select')}</option>
+                  {PREDEFINED_QUESTIONS.filter(pq => pq.value !== 'custom' || !secQList.some((sq, si) => si !== idx && PREDEFINED_QUESTIONS.find(pq2 => pq2.value === sq.question)?.value === pq.value)).map(pq => (
+                    <option key={pq.value} value={pq.value}>{pq.label}</option>
+                  ))}
+                  <option value="custom">{t('security.qCustom')}</option>
+                </select>
+              </div>
+              {/* Custom question input */}
+              {!PREDEFINED_QUESTIONS.some(pq => pq.value === q.question) && (
+                <Input
+                  label={t('security.yourQuestion')}
+                  value={PREDEFINED_QUESTIONS.some(pq => pq.value === q.question) ? '' : q.question}
+                  onChange={(e) => {
+                    setSecQList(prev => prev.map((item, i) =>
+                      i === idx ? { ...item, question: e.target.value } : item
+                    ));
+                    setSecQErrors({});
+                  }}
+                  placeholder={t('security.yourQuestionPlaceholder')}
+                  error={secQErrors[`q${idx}`]}
+                />
+              )}
+              <Input
+                label={t('security.yourAnswer')}
+                type="password"
+                value={q.answer}
+                onChange={(e) => {
+                  setSecQList(prev => prev.map((item, i) =>
+                    i === idx ? { ...item, answer: e.target.value } : item
+                  ));
+                  setSecQErrors({});
+                }}
+                placeholder={t('security.yourAnswerPlaceholder')}
+                error={secQErrors[`a${idx}`]}
+              />
+            </div>
+          ))}
+          <p className="text-xs text-gray-400">{t('security.securityQuestionsNote')}</p>
         </div>
       </Modal>
 
