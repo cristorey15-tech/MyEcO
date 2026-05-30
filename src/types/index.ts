@@ -115,6 +115,14 @@ export interface ExchangeRate {
   updatedAt: Date;
 }
 
+export interface RateHistory {
+  id?: number;
+  fromCurrency: string;
+  toCurrency: string;
+  rate: number;
+  date: Date;
+}
+
 export type Currency = {
   code: string;
   name: string;

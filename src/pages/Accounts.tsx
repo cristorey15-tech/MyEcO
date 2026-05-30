@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, getAccountBalance } from '@/lib/db';
-import { formatCurrency, cn } from '@/lib/utils';
+import { formatCurrency, batchConvertAmounts, cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/useAppStore';
 import { useConfirm } from '@/hooks/useConfirm';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -39,6 +39,7 @@ export function Accounts() {
   const { confirm, ConfirmDialog } = useConfirm();
   const accounts = useLiveQuery(() => db.accounts.toArray());
   const [balances, setBalances] = useState<Record<number, number>>({});
+  const [convertedBalances, setConvertedBalances] = useState<Record<number, number>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -75,14 +76,23 @@ export function Accounts() {
     Promise.all(
       accounts.map(async (acc) => {
         const balance = await getAccountBalance(acc.id!);
-        return { id: acc.id!, balance };
+        return { id: acc.id!, balance, currency: acc.currency };
       })
-    ).then(results => {
+    ).then(async (results) => {
       const newBalances: Record<number, number> = {};
       results.forEach(r => { newBalances[r.id] = r.balance; });
       setBalances(newBalances);
+
+      // Convert all balances to default currency
+      const converted = await batchConvertAmounts(
+        results.map(r => ({ amount: r.balance, from: r.currency })),
+        defaultCurrency
+      );
+      const newConverted: Record<number, number> = {};
+      results.forEach((r, i) => { newConverted[r.id] = converted[i]; });
+      setConvertedBalances(newConverted);
     });
-  }, [accounts]);
+  }, [accounts, defaultCurrency]);
 
   const openNewModal = () => {
     setEditingAccount(null);
@@ -152,7 +162,7 @@ export function Accounts() {
   };
 
   const visibleAccounts = accounts?.filter(a => showArchived || !a.isArchived) || [];
-  const totalBalance = accounts?.reduce((sum, acc) => sum + (balances[acc.id!] || 0), 0) || 0;
+  const totalBalance = accounts?.reduce((sum, acc) => sum + (convertedBalances[acc.id!] || 0), 0) || 0;
 
   const accountTypeOptions = ACCOUNT_TYPES.map(at => ({
     value: at.value,

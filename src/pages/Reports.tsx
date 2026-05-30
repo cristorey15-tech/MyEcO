@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, getAccountBalance } from '@/lib/db';
-import { formatCurrency, getCurrentYear, cn } from '@/lib/utils';
+import { formatCurrency, getCurrentYear, batchConvertAmounts, cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/useAppStore';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,61 +31,89 @@ export function Reports() {
     return { value: String(y), label: String(y) };
   });
 
-  // Monthly summary
-  const monthlyData = useMemo(() => {
-    if (!transactions) return [];
-    const months: Record<string, { income: number; expense: number }> = {};
+  // States for converted report data
+  const [convertedMonthlyData, setConvertedMonthlyData] = useState<Array<{
+    month: string;
+    monthLabel: string;
+    income: number;
+    expense: number;
+    net: number;
+  }>>([]);
 
-    for (let m = 1; m <= 12; m++) {
-      const key = `${selectedYear}-${String(m).padStart(2, '0')}`;
-      months[key] = { income: 0, expense: 0 };
+  const [convertedCategoryData, setConvertedCategoryData] = useState<Array<{
+    name: string;
+    value: number;
+    color: string;
+  }>>([]);
+
+  // Convert all yearly transactions and compute monthly + category data
+  useEffect(() => {
+    if (!transactions || !categories) return;
+
+    // Filter transactions for selected year
+    const yearTxns = transactions.filter(t => new Date(t.date).getFullYear() === selectedYear);
+
+    if (yearTxns.length === 0) {
+      setConvertedMonthlyData([]);
+      setConvertedCategoryData([]);
+      return;
     }
 
-    transactions.forEach(t => {
-      const d = new Date(t.date);
-      if (d.getFullYear() !== selectedYear) return;
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      if (months[key]) {
-        if (t.type === 'income') months[key].income += t.amount;
-        else if (t.type === 'expense') months[key].expense += t.amount;
+    batchConvertAmounts(
+      yearTxns.map(t => ({ amount: t.amount, from: t.currency })),
+      defaultCurrency
+    ).then(converted => {
+      // --- Monthly data (with converted amounts) ---
+      const months: Record<string, { income: number; expense: number }> = {};
+      for (let m = 1; m <= 12; m++) {
+        const key = `${selectedYear}-${String(m).padStart(2, '0')}`;
+        months[key] = { income: 0, expense: 0 };
       }
+
+      yearTxns.forEach((t, i) => {
+        const d = new Date(t.date);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (months[key]) {
+          if (t.type === 'income') months[key].income += converted[i];
+          else if (t.type === 'expense') months[key].expense += converted[i];
+        }
+      });
+
+      setConvertedMonthlyData(
+        Object.entries(months).map(([key, data]) => ({
+          month: key,
+          monthLabel: new Date(selectedYear, parseInt(key.split('-')[1]) - 1).toLocaleDateString(undefined, { month: 'short' }),
+          income: data.income,
+          expense: data.expense,
+          net: data.income - data.expense,
+        }))
+      );
+
+      // --- Category breakdown (with converted amounts) ---
+      const spending: Record<number, { name: string; value: number; color: string }> = {};
+
+      yearTxns.forEach((t, i) => {
+        if (t.type !== 'expense') return;
+        const cat = categories.find(c => c.id === t.categoryId);
+        if (!spending[t.categoryId]) {
+          spending[t.categoryId] = {
+            name: cat?.name || 'Sin categoría',
+            value: 0,
+            color: cat?.color || '#6b7280',
+          };
+        }
+        spending[t.categoryId].value += converted[i];
+      });
+
+      setConvertedCategoryData(
+        Object.values(spending).sort((a, b) => b.value - a.value)
+      );
     });
+  }, [transactions, categories, selectedYear, defaultCurrency]);
 
-    return Object.entries(months).map(([key, data]) => ({
-      month: key,
-      monthLabel: new Date(selectedYear, parseInt(key.split('-')[1]) - 1).toLocaleDateString(undefined, { month: 'short' }),
-      income: data.income,
-      expense: data.expense,
-      net: data.income - data.expense,
-    }));
-  }, [transactions, selectedYear]);
-
-  // Category breakdown
-  const categoryData = useMemo(() => {
-    if (!transactions || !categories) return [];
-    const spending: Record<number, { name: string; value: number; color: string }> = {};
-
-    transactions.forEach(t => {
-      if (t.type !== 'expense') return;
-      const d = new Date(t.date);
-      if (d.getFullYear() !== selectedYear) return;
-      const cat = categories.find(c => c.id === t.categoryId);
-      if (!spending[t.categoryId]) {
-        spending[t.categoryId] = {
-          name: cat?.name || 'Sin categoría',
-          value: 0,
-          color: cat?.color || '#6b7280',
-        };
-      }
-      spending[t.categoryId].value += t.amount;
-    });
-
-    return Object.values(spending).sort((a, b) => b.value - a.value);
-  }, [transactions, categories, selectedYear]);
-
-  // Totals
-  const totalIncome = monthlyData.reduce((s, m) => s + m.income, 0);
-  const totalExpense = monthlyData.reduce((s, m) => s + m.expense, 0);
+  // Totals (from converted data)
+  const totalIncome = convertedMonthlyData.reduce((s, m) => s + m.income, 0);
+  const totalExpense = convertedMonthlyData.reduce((s, m) => s + m.expense, 0);
   const netTotal = totalIncome - totalExpense;
 
   const exportToExcel = () => {
@@ -203,7 +231,7 @@ export function Reports() {
           <div className="h-72">
             {chartType === 'bar' && (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyData}>
+                <BarChart data={convertedMonthlyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="monthLabel" tick={{ fontSize: 12 }} stroke="#94a3b8" />
                   <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
@@ -216,7 +244,7 @@ export function Reports() {
             )}
             {chartType === 'area' && (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlyData}>
+                <AreaChart data={convertedMonthlyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="monthLabel" tick={{ fontSize: 12 }} stroke="#94a3b8" />
                   <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
@@ -227,18 +255,18 @@ export function Reports() {
                 </AreaChart>
               </ResponsiveContainer>
             )}
-            {chartType === 'pie' && categoryData.length > 0 && (
+            {chartType === 'pie' && convertedCategoryData.length > 0 && (
               <div className="flex items-center justify-center gap-6 h-full">
                 <div className="w-48 h-48">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={categoryData}
+                        data={convertedCategoryData}
                         cx="50%" cy="50%"
                         innerRadius={50} outerRadius={80}
                         paddingAngle={3} dataKey="value"
                       >
-                        {categoryData.map((entry, idx) => (
+                        {convertedCategoryData.map((entry, idx) => (
                           <Cell key={idx} fill={entry.color} />
                         ))}
                       </Pie>
@@ -247,7 +275,7 @@ export function Reports() {
                   </ResponsiveContainer>
                 </div>
                 <div className="space-y-2">
-                  {categoryData.slice(0, 8).map((item) => (
+                  {convertedCategoryData.slice(0, 8).map((item) => (
                     <div key={item.name} className="flex items-center gap-2 text-sm">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
                       <span className="text-gray-600">{item.name}</span>

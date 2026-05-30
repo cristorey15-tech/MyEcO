@@ -53,6 +53,7 @@ async function fetchFromFallback(): Promise<Record<string, number> | null> {
 /**
  * Fetch latest exchange rates for all supported currencies and cache them in Dexie.
  * Uses primary API (fawazahmed0), falls back to Frankfurter if it fails.
+ * Also stores historical snapshots in rateHistory table.
  */
 export async function fetchAllRates(): Promise<FetchResult> {
   const result: FetchResult = { success: true, ratesFetched: 0, errors: [] };
@@ -73,6 +74,7 @@ export async function fetchAllRates(): Promise<FetchResult> {
   }
 
   const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const promises: Promise<void>[] = [];
 
   // VES is only available in primary API — try fetching it directly if not in rates
@@ -96,6 +98,32 @@ export async function fetchAllRates(): Promise<FetchResult> {
   for (const [key, value] of Object.entries(rates)) {
     if (typeof value === 'number' && value > 0 && isFinite(value)) {
       normalizedRates[key.toUpperCase()] = value;
+    }
+  }
+
+  // First, save current rates to history before overwriting
+  const currentRates = await db.exchangeRates.toArray();
+  for (const currentRate of currentRates) {
+    // Check if we already have a snapshot for today
+    const existingHistory = await db.rateHistory
+      .where({ fromCurrency: 'USD', toCurrency: currentRate.toCurrency })
+      .filter(h => {
+        const hDate = new Date(h.date);
+        return hDate.getFullYear() === today.getFullYear() &&
+               hDate.getMonth() === today.getMonth() &&
+               hDate.getDate() === today.getDate();
+      })
+      .first();
+
+    if (!existingHistory) {
+      promises.push(
+        db.rateHistory.add({
+          fromCurrency: 'USD',
+          toCurrency: currentRate.toCurrency,
+          rate: currentRate.rate,
+          date: today,
+        }).catch(() => {}) // Ignore duplicate errors
+      );
     }
   }
 
@@ -177,6 +205,51 @@ export async function getLastRateUpdate(): Promise<Date | null> {
     .last();
 
   return rate?.updatedAt || null;
+}
+
+/**
+ * Get historical rate data for a currency pair, sorted by date ascending.
+ */
+export async function getRateHistory(fromCurrency: string, toCurrency: string): Promise<{ date: string; rate: number }[]> {
+  const history = await db.rateHistory
+    .where({ fromCurrency: fromCurrency.toUpperCase(), toCurrency: toCurrency.toUpperCase() })
+    .sortBy('date');
+
+  return history.map(h => ({
+    date: h.date.toISOString().split('T')[0],
+    rate: h.rate,
+  }));
+}
+
+/**
+ * Detect if a rate has dropped significantly (more than X% drop in the last N days).
+ */
+export async function detectRateDrop(fromCurrency: string, toCurrency: string, thresholdPercent = 10, days = 30): Promise<{ dropped: boolean; dropPercent: number; oldRate: number; currentRate: number } | null> {
+  const current = await db.exchangeRates
+    .where({ fromCurrency: fromCurrency.toUpperCase(), toCurrency: toCurrency.toUpperCase() })
+    .first();
+
+  if (!current) return null;
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+
+  const oldHistory = await db.rateHistory
+    .where({ fromCurrency: fromCurrency.toUpperCase(), toCurrency: toCurrency.toUpperCase() })
+    .filter(h => h.date <= cutoff)
+    .sortBy('date');
+
+  if (oldHistory.length === 0) return null;
+
+  const oldRate = oldHistory[oldHistory.length - 1].rate;
+  const dropPercent = ((oldRate - current.rate) / oldRate) * 100;
+
+  return {
+    dropped: dropPercent >= thresholdPercent,
+    dropPercent: Math.round(dropPercent * 10) / 10,
+    oldRate,
+    currentRate: current.rate,
+  };
 }
 
 /**

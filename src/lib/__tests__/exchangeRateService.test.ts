@@ -1,20 +1,27 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Create mocked Dexie table references that survive vi.mock hoisting
-const { mockExchangeRates, mockLast } = vi.hoisted(() => {
+const { mockExchangeRates, mockRateHistory, mockLast } = vi.hoisted(() => {
   const lastFn = vi.fn().mockResolvedValue(null);
+  const rateHistoryAdd = vi.fn().mockResolvedValue(1);
+  const rateHistoryWhere = vi.fn().mockReturnValue({ filter: vi.fn().mockReturnValue({ first: vi.fn().mockResolvedValue(null) }) });
   return {
     mockExchangeRates: {
       put: vi.fn().mockResolvedValue(undefined),
       orderBy: vi.fn().mockReturnValue({ last: lastFn }),
       clear: vi.fn().mockResolvedValue(undefined),
+      toArray: vi.fn().mockResolvedValue([]),
+    },
+    mockRateHistory: {
+      add: rateHistoryAdd,
+      where: rateHistoryWhere,
     },
     mockLast: lastFn,
   };
 });
 
 vi.mock('../db', () => ({
-  db: { exchangeRates: mockExchangeRates },
+  db: { exchangeRates: mockExchangeRates, rateHistory: mockRateHistory },
 }));
 
 import { fetchAllRates, fetchSingleRate, getLastRateUpdate, needsRefresh } from '../exchangeRateService';
@@ -86,10 +93,18 @@ describe('exchangeRateService', () => {
     mockLast.mockResolvedValue(null);
     mockExchangeRates.put.mockResolvedValue(undefined);
     mockExchangeRates.clear.mockResolvedValue(undefined);
+    mockExchangeRates.toArray.mockResolvedValue([]);
     mockExchangeRates.orderBy.mockReturnValue({ last: mockLast });
+    mockRateHistory.add.mockResolvedValue(1);
+    mockRateHistory.where.mockReturnValue({
+      filter: vi.fn().mockReturnValue({ first: vi.fn().mockResolvedValue(null) }),
+    });
     mockExchangeRates.put.mockClear();
     mockExchangeRates.orderBy.mockClear();
     mockExchangeRates.clear.mockClear();
+    mockExchangeRates.toArray.mockClear();
+    mockRateHistory.add.mockClear();
+    mockRateHistory.where.mockClear();
   });
 
   afterEach(() => {

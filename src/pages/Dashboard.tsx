@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, getAccountBalance } from '@/lib/db';
@@ -8,8 +8,9 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip as UITooltip } from '@/components/ui/tooltip';
-import { ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, TrendingDown, Plus, ArrowLeftRight } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, TrendingDown, Plus, ArrowLeftRight, PiggyBank, AlertTriangle, BellRing, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useToastStore } from '@/stores/useToastStore';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 
 export function Dashboard() {
@@ -34,6 +35,16 @@ export function Dashboard() {
   });
 
   const categories = useLiveQuery(() => db.categories.toArray());
+
+  const monthlyBudgets = useLiveQuery(() => {
+    const now = new Date();
+    return db.budgets
+      .where({ month: now.getMonth() + 1, year: now.getFullYear() })
+      .toArray();
+  });
+
+  const [balances, setBalances] = useState<Record<number, number>>({});
+  const [convertedBalances, setConvertedBalances] = useState<Record<number, number>>({});
 
   // Batch-convert all accounts at once
   useEffect(() => {
@@ -61,46 +72,88 @@ export function Dashboard() {
 
   // Batch-convert monthly transactions at once
   const [monthlySummary, setMonthlySummary] = useState({ income: 0, expense: 0 });
+  const [convertedSpendingData, setConvertedSpendingData] = useState<{name: string; value: number; color: string}[]>([]);
+
+  const [budgetComparison, setBudgetComparison] = useState<{
+    categoryId: number;
+    categoryName: string;
+    categoryColor: string;
+    budgeted: number;
+    spent: number;
+    percentage: number;
+  }[]>([]);
+
+  const addToast = useToastStore((s) => s.addToast);
+  const notifiedOverspent = useRef(false);
+
   useEffect(() => {
-    if (!monthlyTransactions) return;
+    if (!monthlyTransactions || !categories) return;
     batchConvertAmounts(
       monthlyTransactions.map(t => ({ amount: t.amount, from: t.currency })),
       defaultCurrency
     ).then(converted => {
       let incomeSum = 0;
       let expenseSum = 0;
+      const spendingByCat: Record<number, number> = {};
+
       monthlyTransactions.forEach((t, i) => {
-        if (t.type === 'income') incomeSum += converted[i];
-        else if (t.type === 'expense') expenseSum += converted[i];
+        const convertedAmount = converted[i];
+        if (t.type === 'income') {
+          incomeSum += convertedAmount;
+        } else if (t.type === 'expense') {
+          expenseSum += convertedAmount;
+          spendingByCat[t.categoryId] = (spendingByCat[t.categoryId] || 0) + convertedAmount;
+        }
       });
       setMonthlySummary({ income: incomeSum, expense: expenseSum });
+
+      // Build converted spending data for pie chart
+      const data = Object.entries(spendingByCat).map(([catId, amount]) => {
+        const cat = categories.find(c => c.id === Number(catId));
+        return {
+          name: cat?.name || 'Sin categoría',
+          value: amount,
+          color: cat?.color || '#6b7280',
+        };
+      }).sort((a, b) => b.value - a.value).slice(0, 6);
+      setConvertedSpendingData(data);
+
+      // Build budget comparison (actual vs budgeted)
+      if (monthlyBudgets && monthlyBudgets.length > 0) {
+        const comparison = monthlyBudgets.map(b => {
+          const spent = spendingByCat[b.categoryId] || 0;
+          const cat = categories.find(c => c.id === b.categoryId);
+          return {
+            categoryId: b.categoryId,
+            categoryName: cat?.name || '—',
+            categoryColor: cat?.color || '#6b7280',
+            budgeted: b.amount,
+            spent,
+            percentage: b.amount > 0 ? Math.round((spent / b.amount) * 100) : 0,
+          };
+        }).sort((a, b) => b.percentage - a.percentage);
+        setBudgetComparison(comparison);
+
+        // Show toast notification for overspent budgets (once per load)
+        const overspent = comparison.filter(c => c.percentage > 100);
+        if (overspent.length > 0 && !notifiedOverspent.current) {
+          notifiedOverspent.current = true;
+          addToast({
+            title: t('budgets.overspent'),
+            message: t('budgets.overspentCategories', { count: overspent.length }),
+            variant: 'warning',
+            duration: 8000,
+          });
+        }
+      } else {
+        setBudgetComparison([]);
+      }
     });
-  }, [monthlyTransactions, defaultCurrency]);
+  }, [monthlyTransactions, defaultCurrency, categories, monthlyBudgets]);
 
   const totalBalance = Object.values(convertedBalances).reduce((sum, b) => sum + b, 0);
 
-  // Spending by category for pie chart (from ALL current month transactions)
-  const getSpendingByCategory = () => {
-    if (!monthlyTransactions || !categories) return [];
-    const spending: Record<number, number> = {};
-    
-    monthlyTransactions.forEach(t => {
-      if (t.type === 'expense') {
-        spending[t.categoryId] = (spending[t.categoryId] || 0) + t.amount;
-      }
-    });
-
-    return Object.entries(spending).map(([catId, amount]) => {
-      const cat = categories.find(c => c.id === Number(catId));
-      return {
-        name: cat?.name || 'Sin categoría',
-        value: amount,
-        color: cat?.color || '#6b7280',
-      };
-    }).sort((a, b) => b.value - a.value).slice(0, 6);
-  };
-
-  const spendingData = getSpendingByCategory();
+  const spendingData = convertedSpendingData;
 
   const getCategoryName = (id: number) => {
     return categories?.find(c => c.id === id)?.name || '—';
@@ -110,7 +163,7 @@ export function Dashboard() {
     return accounts?.find(a => a.id === id)?.name || '—';
   };
 
-  const isLoading = !accounts || !recentTransactions || !monthlyTransactions || !categories;
+  const isLoading = !accounts || !recentTransactions || !monthlyTransactions || !categories || !monthlyBudgets;
 
   return (
     <div className="space-y-6">
@@ -281,6 +334,146 @@ export function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Budget Overview */}
+      {budgetComparison.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <PiggyBank className="w-5 h-5 text-primary" />
+                <h2 className="text-base font-semibold text-gray-900">{t('budgets.title')}</h2>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/budgets')}>
+                {t('common.all')}
+                <ArrowLeftRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* Total summary bar */}
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  {formatCurrency(budgetComparison.reduce((s, b) => s + b.spent, 0), defaultCurrency)}
+                  <span className="text-sm text-gray-400 font-normal">
+                    {' '}/ {formatCurrency(budgetComparison.reduce((s, b) => s + b.budgeted, 0), defaultCurrency)}
+                  </span>
+                </p>
+              </div>
+              <span className={cn(
+                'text-xs font-medium px-2 py-1 rounded-full',
+                budgetComparison.reduce((s, b) => s + b.spent, 0) > budgetComparison.reduce((s, b) => s + b.budgeted, 0)
+                  ? 'bg-red-50 text-red-600'
+                  : 'bg-green-50 text-green-600'
+              )}>
+                {budgetComparison.reduce((s, b) => s + b.spent, 0) > budgetComparison.reduce((s, b) => s + b.budgeted, 0)
+                  ? t('budgets.overspent')
+                  : t('budgets.onTrack')}
+              </span>
+            </div>
+
+            {/* Overspent budget alerts */}
+            {(() => {
+              const overspent = budgetComparison.filter(c => c.percentage > 100);
+              if (overspent.length > 0) {
+                return (
+                  <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <BellRing className="w-4 h-4 text-danger" />
+                      <span className="text-sm font-semibold text-red-800">{t('budgets.alerts')}</span>
+                      <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-red-200 text-red-700 ml-auto">
+                        {overspent.length}
+                      </span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {overspent.slice(0, 4).map((item) => (
+                        <div key={item.categoryId} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <AlertTriangle className="w-3.5 h-3.5 text-danger flex-shrink-0" />
+                            <span className="text-red-700 truncate">{item.categoryName}</span>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                            <span className="text-xs font-medium text-red-600">
+                              +{Math.round(item.percentage - 100)}%
+                            </span>
+                            <span className="text-xs text-red-500">
+                              {formatCurrency(item.spent - item.budgeted, defaultCurrency)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {overspent.length > 4 && (
+                      <button
+                        onClick={() => navigate('/budgets')}
+                        className="text-xs text-red-600 hover:text-red-700 hover:underline mt-1.5"
+                      >
+                        +{overspent.length - 4} {t('budgets.title').toLowerCase()} excedidos
+                      </button>
+                    )}
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
+            {budgetComparison.length > 0 && budgetComparison.filter(c => c.percentage > 100).length === 0 && (
+              <div className="mb-3 flex items-center gap-2 text-xs text-gray-400">
+                <CheckCircle className="w-3.5 h-3.5 text-secondary" />
+                <span>{t('budgets.noOverspent')}</span>
+              </div>
+            )}
+
+            {/* Category budget bars */}
+            <div className="space-y-3">
+              {budgetComparison.slice(0, 5).map((item) => (
+                <div key={item.categoryId} className="group">
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div
+                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: item.categoryColor }}
+                      />
+                      <span className="text-gray-700 truncate">{item.categoryName}</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                      <span className="text-xs text-gray-500">
+                        {formatCurrency(item.spent, defaultCurrency)}
+                        <span className="text-gray-300"> / {formatCurrency(item.budgeted, defaultCurrency)}</span>
+                      </span>
+                      {item.percentage > 100 && (
+                        <AlertTriangle className="w-3.5 h-3.5 text-danger flex-shrink-0" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className={cn(
+                        'h-full rounded-full transition-all duration-500',
+                        item.percentage > 100 ? 'bg-danger' : item.percentage >= 75 ? 'bg-warning' : 'bg-secondary'
+                      )}
+                      style={{ width: `${Math.min(100, item.percentage)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {budgetComparison.length > 5 && (
+              <p className="text-xs text-gray-400 mt-3 text-center">
+                +{budgetComparison.length - 5} {t('budgets.title').toLowerCase()} ·{' '}
+                <button
+                  onClick={() => navigate('/budgets')}
+                  className="text-primary hover:underline"
+                >
+                  {t('common.all')}
+                </button>
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent Transactions */}
       <Card>

@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Account, Transaction, Category, Budget, Goal, Debt, SharedBudget, ExchangeRate } from '@/types';
+import type { Account, Transaction, Category, Budget, Goal, Debt, SharedBudget, ExchangeRate, RateHistory } from '@/types';
 
 class MyEcoDB extends Dexie {
   accounts!: Table<Account, number>;
@@ -10,10 +10,11 @@ class MyEcoDB extends Dexie {
   debts!: Table<Debt, number>;
   sharedBudgets!: Table<SharedBudget, number>;
   exchangeRates!: Table<ExchangeRate, number>;
+  rateHistory!: Table<RateHistory, number>;
 
   constructor() {
     super('MyEcoDB');
-    this.version(1).stores({
+    this.version(2).stores({
       accounts: '++id, type, currency, isArchived',
       transactions: '++id, type, accountId, toAccountId, categoryId, date, currency, [type+date]',
       categories: '++id, type, isDefault',
@@ -22,6 +23,11 @@ class MyEcoDB extends Dexie {
       debts: '++id, type',
       sharedBudgets: '++id',
       exchangeRates: '++id, [fromCurrency+toCurrency]',
+      rateHistory: '++id, [fromCurrency+toCurrency]',
+    });
+    // Handle migration from v1 to v2
+    this.version(1).upgrade(async (tx) => {
+      // rateHistory table is new, no data migration needed
     });
   }
 }

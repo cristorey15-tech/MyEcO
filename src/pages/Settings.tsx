@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
@@ -6,16 +6,92 @@ import { db, seedCategories } from '@/lib/db';
 import { useAppStore } from '@/stores/useAppStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { useConfirm } from '@/hooks/useConfirm';
-import { fetchAllRates, getLastRateUpdate } from '@/lib/exchangeRateService';
+import { fetchAllRates, getLastRateUpdate, needsRefresh, getRateHistory, detectRateDrop } from '@/lib/exchangeRateService';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { Tooltip } from '@/components/ui/tooltip';
-import { Plus, Edit3, Trash2, Globe, Wallet, Palette, Repeat, RotateCcw, Save, DownloadCloud, Loader2, Bell, BellOff, AlertTriangle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid } from 'recharts';
+import {
+  Plus, Edit3, Trash2, Globe, Wallet, Palette, Repeat, RotateCcw,
+  Save, DownloadCloud, Loader2, Bell, BellOff, AlertTriangle,
+  ArrowLeftRight, Search, TrendingUp, TrendingDown, Minus,
+  Briefcase, Laptop, Gift, PlusCircle,
+  Utensils, Car, Home, Zap, Heart, Film, Book, ShoppingBag, Plane,
+  MoreHorizontal, Shield, FileText, Music, Camera, Smartphone,
+  Dumbbell, Wifi, Coffee, Star
+} from 'lucide-react';
 import type { Category } from '@/types';
 import { CURRENCIES } from '@/types';
+
+// Available icons for categories
+const CATEGORY_ICONS = [
+  { name: 'briefcase', component: Briefcase },
+  { name: 'laptop', component: Laptop },
+  { name: 'trending-up', component: TrendingUp },
+  { name: 'gift', component: Gift },
+  { name: 'plus-circle', component: PlusCircle },
+  { name: 'utensils', component: Utensils },
+  { name: 'car', component: Car },
+  { name: 'home', component: Home },
+  { name: 'zap', component: Zap },
+  { name: 'heart', component: Heart },
+  { name: 'film', component: Film },
+  { name: 'book', component: Book },
+  { name: 'shopping-bag', component: ShoppingBag },
+  { name: 'plane', component: Plane },
+  { name: 'more-horizontal', component: MoreHorizontal },
+  { name: 'file-text', component: FileText },
+  { name: 'shield', component: Shield },
+  { name: 'music', component: Music },
+  { name: 'camera', component: Camera },
+  { name: 'smartphone', component: Smartphone },
+  { name: 'dumbbell', component: Dumbbell },
+  { name: 'wifi', component: Wifi },
+  { name: 'coffee', component: Coffee },
+  { name: 'star', component: Star },
+];
+
+function getIconComponent(iconName: string) {
+  const found = CATEGORY_ICONS.find(i => i.name === iconName);
+  return found?.component || PlusCircle;
+}
+
+// Mini sparkline SVG component
+function Sparkline({ data, width = 80, height = 24, color = '#2563eb' }: {
+  data: { rate: number }[];
+  width?: number;
+  height?: number;
+  color?: string;
+}) {
+  if (data.length < 2) return null;
+  const rates = data.map(d => d.rate);
+  const min = Math.min(...rates);
+  const max = Math.max(...rates);
+  const range = max - min || 1;
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * width;
+    const y = height - ((d.rate - min) / range) * (height - 4) - 2;
+    return `${x},${y}`;
+  }).join(' ');
+  const isUp = rates[rates.length - 1] >= rates[0];
+
+  return (
+    <svg width={width} height={height} className="flex-shrink-0">
+      <polyline
+        fill="none"
+        stroke={isUp ? '#059669' : '#dc2626'}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={points}
+      />
+    </svg>
+  );
+}
 
 export function Settings() {
   const { t, i18n } = useTranslation();
@@ -24,15 +100,31 @@ export function Settings() {
   const { confirm, ConfirmDialog } = useConfirm();
   const categories = useLiveQuery(() => db.categories.toArray());
   const exchangeRates = useLiveQuery(() => db.exchangeRates.toArray());
+  const transactions = useLiveQuery(() => db.transactions.toArray());
 
+  // --- Category state ---
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [catForm, setCatForm] = useState({ name: '', type: 'expense' as 'income' | 'expense', icon: '', color: '#2563eb' });
+  const [catForm, setCatForm] = useState({ name: '', type: 'expense' as 'income' | 'expense', icon: 'plus-circle', color: '#2563eb' });
   const [catFormErrors, setCatFormErrors] = useState<Record<string, string>>({});
+  const [catSearchTerm, setCatSearchTerm] = useState('');
 
+  // Transaction count per category
+  const catTxCounts = useMemo(() => {
+    if (!transactions) return {} as Record<number, number>;
+    const counts: Record<number, number> = {};
+    for (const t of transactions) {
+      counts[t.categoryId] = (counts[t.categoryId] || 0) + 1;
+    }
+    return counts;
+  }, [transactions]);
+
+  // --- Exchange Rate state ---
   const [rateModalOpen, setRateModalOpen] = useState(false);
   const [editingRate, setEditingRate] = useState<{ id?: number; fromCurrency: string; toCurrency: string; rate: number } | null>(null);
   const [rateForm, setRateForm] = useState({ fromCurrency: 'USD', toCurrency: 'MXN', rate: 0 });
+  const [rateFormErrors, setRateFormErrors] = useState<Record<string, string>>({});
+  const [ratesOutdated, setRatesOutdated] = useState(false);
 
   const [tourResetMessage, setTourResetMessage] = useState(false);
   const [fetchingRates, setFetchingRates] = useState(false);
@@ -40,6 +132,13 @@ export function Settings() {
   const [notifSupported, setNotifSupported] = useState(false);
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | 'unavailable'>('default');
   const addToast = useToastStore((s) => s.addToast);
+
+  // --- Rate Trend state ---
+  const [rateHistories, setRateHistories] = useState<Record<string, { date: string; rate: number }[]>>({});
+  const [rateDrops, setRateDrops] = useState<Record<string, { dropped: boolean; dropPercent: number } | null>>({});
+  const [trendModalOpen, setTrendModalOpen] = useState(false);
+  const [trendRate, setTrendRate] = useState<{ fromCurrency: string; toCurrency: string } | null>(null);
+  const [loadingHistory, setLoadingHistory] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const supported = 'Notification' in window;
@@ -56,6 +155,36 @@ export function Settings() {
     getLastRateUpdate().then(setLastRateUpdate);
   }, []);
 
+  // Check if rates are outdated
+  useEffect(() => {
+    needsRefresh().then(setRatesOutdated);
+  }, [exchangeRates]);
+
+  // Load rate histories and detect drops for all rates
+  useEffect(() => {
+    if (!exchangeRates || exchangeRates.length === 0) return;
+
+    for (const rate of exchangeRates) {
+      const key = `${rate.fromCurrency}-${rate.toCurrency}`;
+
+      // Load history
+      if (!rateHistories[key] && !loadingHistory[key]) {
+        setLoadingHistory(prev => ({ ...prev, [key]: true }));
+        getRateHistory(rate.fromCurrency, rate.toCurrency).then(history => {
+          setRateHistories(prev => ({ ...prev, [key]: history }));
+          setLoadingHistory(prev => ({ ...prev, [key]: false }));
+        });
+      }
+
+      // Detect drop
+      if (!rateDrops[key]) {
+        detectRateDrop(rate.fromCurrency, rate.toCurrency).then(result => {
+          setRateDrops(prev => ({ ...prev, [key]: result }));
+        });
+      }
+    }
+  }, [exchangeRates]);
+
   const handleFetchRates = async () => {
     setFetchingRates(true);
     const result = await fetchAllRates();
@@ -64,6 +193,9 @@ export function Settings() {
     if (result.success && result.ratesFetched > 0) {
       const updated = await getLastRateUpdate();
       setLastRateUpdate(updated);
+      // Clear cached histories/drops so they reload
+      setRateHistories({});
+      setRateDrops({});
       addToast({
         title: t('settings.ratesUpdated'),
         message: t('settings.ratesFetchedCount', { count: result.ratesFetched }),
@@ -83,6 +215,7 @@ export function Settings() {
     i18n.changeLanguage(lng);
   };
 
+  // --- Category handlers ---
   const openNewCategory = () => {
     setEditingCategory(null);
     setCatFormErrors({});
@@ -93,7 +226,7 @@ export function Settings() {
   const openEditCategory = (cat: Category) => {
     setEditingCategory(cat);
     setCatFormErrors({});
-    setCatForm({ name: cat.name, type: cat.type, icon: cat.icon, color: cat.color });
+    setCatForm({ name: cat.name, type: cat.type, icon: cat.icon || 'plus-circle', color: cat.color });
     setCategoryModalOpen(true);
   };
 
@@ -103,7 +236,11 @@ export function Settings() {
     setCatFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
     if (editingCategory) {
-      await db.categories.update(editingCategory.id!, { name: catForm.name, color: catForm.color });
+      await db.categories.update(editingCategory.id!, {
+        name: catForm.name,
+        color: catForm.color,
+        icon: catForm.icon,
+      });
     } else {
       await db.categories.add({
         name: catForm.name,
@@ -160,32 +297,68 @@ export function Settings() {
     setTimeout(() => setTourResetMessage(false), 3000);
   };
 
-  // Exchange Rate handlers
+  // --- Exchange Rate handlers ---
   const openNewRate = () => {
     setEditingRate(null);
     setRateForm({ fromCurrency: 'USD', toCurrency: 'MXN', rate: 0 });
+    setRateFormErrors({});
     setRateModalOpen(true);
   };
 
   const openEditRate = (rate: { id?: number; fromCurrency: string; toCurrency: string; rate: number }) => {
     setEditingRate(rate);
     setRateForm({ fromCurrency: rate.fromCurrency, toCurrency: rate.toCurrency, rate: rate.rate });
+    setRateFormErrors({});
     setRateModalOpen(true);
   };
 
+  const swapCurrencies = () => {
+    setRateForm(prev => ({ ...prev, fromCurrency: prev.toCurrency, toCurrency: prev.fromCurrency }));
+  };
+
+  const validateRateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    const from = rateForm.fromCurrency.toUpperCase();
+    const to = rateForm.toCurrency.toUpperCase();
+
+    if (rateForm.rate <= 0) {
+      errors.rate = t('settings.rateInvalidValue');
+    }
+    if (from === to) {
+      errors.currencies = t('settings.rateSameCurrency');
+    }
+    // Check for duplicate pair (exclude current rate when editing)
+    if (exchangeRates) {
+      const duplicate = exchangeRates.find(
+        r => r.fromCurrency === from && r.toCurrency === to && r.id !== editingRate?.id
+      );
+      if (duplicate) {
+        errors.currencies = t('settings.rateDuplicate');
+      }
+    }
+
+    setRateFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const saveRate = async () => {
+    if (!validateRateForm()) return;
+
     const now = new Date();
+    const from = rateForm.fromCurrency.toUpperCase();
+    const to = rateForm.toCurrency.toUpperCase();
+
     if (editingRate && editingRate.id) {
       await db.exchangeRates.update(editingRate.id, {
-        fromCurrency: rateForm.fromCurrency.toUpperCase(),
-        toCurrency: rateForm.toCurrency.toUpperCase(),
+        fromCurrency: from,
+        toCurrency: to,
         rate: rateForm.rate,
         updatedAt: now,
       });
     } else {
       await db.exchangeRates.add({
-        fromCurrency: rateForm.fromCurrency.toUpperCase(),
-        toCurrency: rateForm.toCurrency.toUpperCase(),
+        fromCurrency: from,
+        toCurrency: to,
         rate: rateForm.rate,
         updatedAt: now,
       });
@@ -203,6 +376,11 @@ export function Settings() {
     if (confirmed) {
       await db.exchangeRates.delete(id);
     }
+  };
+
+  const openTrendModal = async (fromCurrency: string, toCurrency: string) => {
+    setTrendRate({ fromCurrency, toCurrency });
+    setTrendModalOpen(true);
   };
 
   const currencyOptions = CURRENCIES.map(c => ({ value: c.code, label: `${c.flag} ${c.code} - ${c.name}` }));
@@ -225,6 +403,7 @@ export function Settings() {
     await db.debts.clear();
     await db.sharedBudgets.clear();
     await db.exchangeRates.clear();
+    await db.rateHistory.clear();
 
     // Re-seed default categories
     await seedCategories();
@@ -273,8 +452,18 @@ export function Settings() {
     input.click();
   };
 
-  const expenseCategories = categories?.filter(c => c.type === 'expense') || [];
-  const incomeCategories = categories?.filter(c => c.type === 'income') || [];
+  // Filtered/search categories
+  const filteredCategories = useMemo(() => {
+    if (!categories) return { income: [] as Category[], expense: [] as Category[] };
+    const income = categories.filter(c => c.type === 'income');
+    const expense = categories.filter(c => c.type === 'expense');
+    if (!catSearchTerm) return { income, expense };
+    const term = catSearchTerm.toLowerCase();
+    return {
+      income: income.filter(c => c.name.toLowerCase().includes(term)),
+      expense: expense.filter(c => c.name.toLowerCase().includes(term)),
+    };
+  }, [categories, catSearchTerm]);
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -363,45 +552,120 @@ export function Settings() {
               </Tooltip>
             </div>
           </div>
+          {/* Outdated rates banner */}
+          {ratesOutdated && exchangeRates && exchangeRates.length > 0 && (
+            <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+              <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+              <p className="text-xs text-amber-700 flex-1">
+                {t('settings.rateOutdatedDesc')}
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleFetchRates}
+                disabled={fetchingRates}
+                className="text-xs h-7 px-2 border-amber-300 text-amber-700 hover:bg-amber-100"
+              >
+                {fetchingRates ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <DownloadCloud className="w-3 h-3" />
+                )}
+                {t('settings.fetchRates')}
+              </Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {exchangeRates && exchangeRates.length > 0 ? (
             <div className="space-y-2">
-              {exchangeRates.map((rate) => (
-                <div
-                  key={rate.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
-                      <span className="font-bold">{rate.fromCurrency}</span>
-                      <span className="text-gray-400">→</span>
-                      <span className="font-bold">{rate.toCurrency}</span>
-                    </div>
-                    <span className="text-sm text-gray-500">
-                      1 {rate.fromCurrency} = <strong>{rate.rate}</strong> {rate.toCurrency}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Tooltip content={t('common.edit')}>
-                      <button
-                        onClick={() => openEditRate(rate)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-white transition-colors"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                    </Tooltip>
-                    <Tooltip content={t('common.delete')}>
-                      <button
-                        onClick={() => deleteRate(rate.id!)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-white transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </Tooltip>
-                  </div>
+              {/* Mobile last update info */}
+              {lastRateUpdate && (
+                <div className="sm:hidden flex items-center gap-1.5 text-xs text-gray-400 mb-2 pb-2 border-b border-gray-100">
+                  <DownloadCloud className="w-3 h-3" />
+                  <span>
+                    {t('settings.lastUpdate')}: {lastRateUpdate.toLocaleDateString()} {lastRateUpdate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
-              ))}
+              )}
+              {[...exchangeRates]
+                .sort((a, b) => {
+                  const pairA = `${a.fromCurrency}→${a.toCurrency}`;
+                  const pairB = `${b.fromCurrency}→${b.toCurrency}`;
+                  return pairA.localeCompare(pairB);
+                })
+                .map((rate) => {
+                  const key = `${rate.fromCurrency}-${rate.toCurrency}`;
+                  const history = rateHistories[key];
+                  const drop = rateDrops[key];
+                  const loadingHist = loadingHistory[key];
+
+                  return (
+                  <div
+                    key={rate.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900 flex-shrink-0">
+                        <span className="font-bold">{rate.fromCurrency}</span>
+                        <span className="text-gray-400">→</span>
+                        <span className="font-bold">{rate.toCurrency}</span>
+                      </div>
+                      <span className="text-sm text-gray-500 truncate">
+                        1 {rate.fromCurrency} = <strong>{rate.rate}</strong> {rate.toCurrency}
+                      </span>
+                      {/* Inline sparkline */}
+                      {loadingHist ? (
+                        <Loader2 className="w-4 h-4 text-gray-300 animate-spin flex-shrink-0" />
+                      ) : history && history.length >= 2 ? (
+                        <Sparkline data={history} />
+                      ) : null}
+                      {/* Rate drop indicator */}
+                      {drop?.dropped && (
+                        <Tooltip content={t('settings.rateDropDetected', { percent: drop.dropPercent })}>
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-600 border border-red-200 flex-shrink-0">
+                            <TrendingDown className="w-3 h-3" />
+                            {drop.dropPercent}%
+                          </span>
+                        </Tooltip>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                      {/* Trend button */}
+                      <Tooltip content={t('settings.rateTrend')}>
+                        <button
+                          onClick={() => openTrendModal(rate.fromCurrency, rate.toCurrency)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-white transition-colors"
+                        >
+                          {history && history.length >= 2 ? (
+                            history[history.length - 1].rate >= history[0].rate
+                              ? <TrendingUp className="w-3.5 h-3.5" />
+                              : <TrendingDown className="w-3.5 h-3.5" />
+                          ) : (
+                            <Minus className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </Tooltip>
+                      <Tooltip content={t('common.edit')}>
+                        <button
+                          onClick={() => openEditRate(rate)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-white transition-colors"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                      </Tooltip>
+                      <Tooltip content={t('common.delete')}>
+                        <button
+                          onClick={() => deleteRate(rate.id!)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-white transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </Tooltip>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-6">
@@ -428,17 +692,35 @@ export function Settings() {
               </Button>
             </Tooltip>
           </div>
+          {/* Category search */}
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <input
+              className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-colors"
+              placeholder={t('settings.catSearchPlaceholder')}
+              value={catSearchTerm}
+              onChange={(e) => setCatSearchTerm(e.target.value)}
+            />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{t('common.income')}</h3>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{t('common.income')} ({filteredCategories.income.length})</h3>
             <div className="flex flex-wrap gap-2">
-              {incomeCategories.map(cat => (
-                <div key={cat.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm"
+              {filteredCategories.income.length > 0 ? filteredCategories.income.map(cat => {
+                const IconComp = getIconComponent(cat.icon);
+                const txCount = catTxCounts[cat.id!] || 0;
+                return (
+                <div key={cat.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm group hover:shadow-sm transition-shadow"
                      style={{ borderColor: cat.color + '30' }}>
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
-                  <span>{cat.name}</span>
-                  <div className="flex ml-1">
+                  <div className="w-5 h-5 rounded flex items-center justify-center" style={{ backgroundColor: cat.color + '20' }}>
+                    <IconComp className="w-3 h-3" style={{ color: cat.color }} />
+                  </div>
+                  <span className="font-medium text-gray-800">{cat.name}</span>
+                  <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                    {txCount > 0 ? t('settings.catUsage', { count: txCount }) : t('settings.catNoUsage')}
+                  </Badge>
+                  <div className="flex ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Tooltip content={t('common.edit')}>
                       <button onClick={() => openEditCategory(cat)} className="p-0.5 text-gray-400 hover:text-gray-600">
                         <Edit3 className="w-3 h-3" />
@@ -451,18 +733,28 @@ export function Settings() {
                     </Tooltip>
                   </div>
                 </div>
-              ))}
+              )}) : (
+                <p className="text-xs text-gray-400 italic">—</p>
+              )}
             </div>
           </div>
           <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{t('common.expense')}</h3>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{t('common.expense')} ({filteredCategories.expense.length})</h3>
             <div className="flex flex-wrap gap-2">
-              {expenseCategories.map(cat => (
-                <div key={cat.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm"
+              {filteredCategories.expense.length > 0 ? filteredCategories.expense.map(cat => {
+                const IconComp = getIconComponent(cat.icon);
+                const txCount = catTxCounts[cat.id!] || 0;
+                return (
+                <div key={cat.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm group hover:shadow-sm transition-shadow"
                      style={{ borderColor: cat.color + '30' }}>
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
-                  <span>{cat.name}</span>
-                  <div className="flex ml-1">
+                  <div className="w-5 h-5 rounded flex items-center justify-center" style={{ backgroundColor: cat.color + '20' }}>
+                    <IconComp className="w-3 h-3" style={{ color: cat.color }} />
+                  </div>
+                  <span className="font-medium text-gray-800">{cat.name}</span>
+                  <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                    {txCount > 0 ? t('settings.catUsage', { count: txCount }) : t('settings.catNoUsage')}
+                  </Badge>
+                  <div className="flex ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Tooltip content={t('common.edit')}>
                       <button onClick={() => openEditCategory(cat)} className="p-0.5 text-gray-400 hover:text-gray-600">
                         <Edit3 className="w-3 h-3" />
@@ -475,7 +767,9 @@ export function Settings() {
                     </Tooltip>
                   </div>
                 </div>
-              ))}
+              )}) : (
+                <p className="text-xs text-gray-400 italic">—</p>
+              )}
             </div>
           </div>
         </CardContent>
@@ -583,6 +877,7 @@ export function Settings() {
         isOpen={categoryModalOpen}
         onClose={() => setCategoryModalOpen(false)}
         title={editingCategory ? t('common.edit') + ' ' + t('common.category') : t('settings.newCategory')}
+        size="lg"
         footer={
           <>
             <Button variant="ghost" onClick={() => setCategoryModalOpen(false)}>{t('common.cancel')}</Button>
@@ -614,33 +909,83 @@ export function Settings() {
             value={catForm.color}
             onChange={(e) => setCatForm(prev => ({ ...prev, color: e.target.value }))}
           />
+          {/* Icon selector */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.catIcon')}</label>
+            <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5">
+              {CATEGORY_ICONS.map(({ name, component: IconComp }) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => setCatForm(prev => ({ ...prev, icon: name }))}
+                  className={`p-2 rounded-lg border transition-all ${
+                    catForm.icon === name
+                      ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
+                      : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600 hover:bg-gray-50'
+                  }`}
+                  title={name}
+                >
+                  <IconComp className="w-4 h-4 mx-auto" />
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Preview */}
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50">
+            {(() => {
+              const PreviewIcon = getIconComponent(catForm.icon);
+              return (
+                <>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: catForm.color + '20' }}>
+                    <PreviewIcon className="w-4 h-4" style={{ color: catForm.color }} />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">{catForm.name || '(preview)'}</span>
+                  <span className="text-xs text-gray-400">{catForm.type === 'income' ? t('common.income') : t('common.expense')}</span>
+                </>
+              );
+            })()}
+          </div>
         </div>
       </Modal>
 
       {/* Exchange Rate Modal */}
       <Modal
         isOpen={rateModalOpen}
-        onClose={() => setRateModalOpen(false)}
+        onClose={() => { setRateModalOpen(false); setRateFormErrors({}); }}
         title={editingRate ? t('settings.editRate') : t('settings.addRate')}
         footer={
           <>
-            <Button variant="ghost" onClick={() => setRateModalOpen(false)}>{t('common.cancel')}</Button>
+            <Button variant="ghost" onClick={() => { setRateModalOpen(false); setRateFormErrors({}); }}>{t('common.cancel')}</Button>
             <Button onClick={saveRate}>{t('common.save')}</Button>
           </>
         }
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Select
-              label={t('settings.fromCurrency')}
-              value={rateForm.fromCurrency}
-              onChange={(e) => setRateForm(prev => ({ ...prev, fromCurrency: e.target.value }))}
-              options={currencyOptions}
-            />
+          <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-end">
+            <div className="space-y-1.5">
+              <Select
+                label={t('settings.fromCurrency')}
+                value={rateForm.fromCurrency}
+                onChange={(e) => { setRateForm(prev => ({ ...prev, fromCurrency: e.target.value })); setRateFormErrors({}); }}
+                options={currencyOptions}
+              />
+              {rateFormErrors.currencies && (
+                <p className="text-xs text-danger">{rateFormErrors.currencies}</p>
+              )}
+            </div>
+            <Tooltip content={t('settings.rateSwap')}>
+              <button
+                type="button"
+                onClick={swapCurrencies}
+                className="mb-1 p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/5 transition-colors"
+              >
+                <ArrowLeftRight className="w-4 h-4" />
+              </button>
+            </Tooltip>
             <Select
               label={t('settings.toCurrency')}
               value={rateForm.toCurrency}
-              onChange={(e) => setRateForm(prev => ({ ...prev, toCurrency: e.target.value }))}
+              onChange={(e) => { setRateForm(prev => ({ ...prev, toCurrency: e.target.value })); setRateFormErrors({}); }}
               options={currencyOptions}
             />
           </div>
@@ -649,10 +994,129 @@ export function Settings() {
             type="number"
             step="0.0001"
             value={rateForm.rate}
-            onChange={(e) => setRateForm(prev => ({ ...prev, rate: parseFloat(e.target.value) || 0 }))}
+            onChange={(e) => { setRateForm(prev => ({ ...prev, rate: parseFloat(e.target.value) || 0 })); setRateFormErrors({}); }}
+            error={rateFormErrors.rate}
           />
           <p className="text-xs text-gray-400">{t('settings.rateExample')}</p>
         </div>
+      </Modal>
+
+      {/* Rate Trend Modal */}
+      <Modal
+        isOpen={trendModalOpen}
+        onClose={() => { setTrendModalOpen(false); setTrendRate(null); }}
+        title={trendRate ? t('settings.rateTrendTitle', { from: trendRate.fromCurrency, to: trendRate.toCurrency }) : ''}
+        size="lg"
+      >
+        {trendRate && (() => {
+          const key = `${trendRate.fromCurrency}-${trendRate.toCurrency}`;
+          const history = rateHistories[key];
+
+          if (!history || history.length < 2) {
+            return (
+              <div className="text-center py-12">
+                <Minus className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                <p className="text-sm text-gray-500">{t('settings.rateNoHistory')}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {t('settings.rateTrendPeriod', { days: 30 })}
+                </p>
+              </div>
+            );
+          }
+
+          const rates = history.map(h => h.rate);
+          const min = Math.min(...rates);
+          const max = Math.max(...rates);
+          const current = rates[rates.length - 1];
+          const first = rates[0];
+          const change = ((current - first) / first) * 100;
+          const changeAbs = current - first;
+          const isUp = change >= 0;
+
+          return (
+            <div className="space-y-4">
+              {/* Stats */}
+              <div className="grid grid-cols-4 gap-3">
+                <div className="p-3 rounded-lg bg-gray-50 text-center">
+                  <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('settings.rateCurrent')}</p>
+                  <p className="text-sm font-bold text-gray-900 mt-0.5">{current.toFixed(6)}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-gray-50 text-center">
+                  <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('settings.rateMin')}</p>
+                  <p className="text-sm font-bold text-gray-900 mt-0.5">{min.toFixed(6)}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-gray-50 text-center">
+                  <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('settings.rateMax')}</p>
+                  <p className="text-sm font-bold text-gray-900 mt-0.5">{max.toFixed(6)}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-gray-50 text-center">
+                  <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('settings.rateChange', { days: history.length })}</p>
+                  <p className={`text-sm font-bold mt-0.5 flex items-center justify-center gap-0.5 ${isUp ? 'text-secondary' : 'text-danger'}`}>
+                    {isUp ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                    {change >= 0 ? '+' : ''}{change.toFixed(1)}%
+                  </p>
+                </div>
+              </div>
+
+              {/* Chart */}
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={history}>
+                    <defs>
+                      <linearGradient id="rateGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={isUp ? '#059669' : '#dc2626'} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={isUp ? '#059669' : '#dc2626'} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(val: string) => {
+                        const d = new Date(val);
+                        return `${d.getMonth() + 1}/${d.getDate()}`;
+                      }}
+                    />
+                    <YAxis
+                      domain={['auto', 'auto']}
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(val: number) => val.toFixed(4)}
+                    />
+                    <RechartsTooltip
+                      contentStyle={{
+                        borderRadius: '8px',
+                        border: '1px solid #e5e7eb',
+                        fontSize: '12px',
+                      }}
+                      formatter={(value: number) => [value.toFixed(6), `${trendRate.fromCurrency} → ${trendRate.toCurrency}`]}
+                      labelFormatter={(label: string) => {
+                        const d = new Date(label);
+                        return d.toLocaleDateString();
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="rate"
+                      stroke={isUp ? '#059669' : '#dc2626'}
+                      strokeWidth={2}
+                      fill="url(#rateGradient)"
+                      dot={false}
+                      activeDot={{ r: 4, strokeWidth: 0 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              <p className="text-xs text-gray-400 text-center">
+                {t('settings.rateTrendPeriod', { days: history.length })}
+              </p>
+            </div>
+          );
+        })()}
       </Modal>
 
       {ConfirmDialog}
