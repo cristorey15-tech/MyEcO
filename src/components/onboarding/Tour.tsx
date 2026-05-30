@@ -230,7 +230,7 @@ export function Tour() {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: -10 }}
         transition={{ type: 'spring', duration: 0.5, bounce: 0.3 }}
-        className="fixed z-[102] w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
+        className="fixed z-[102] w-[calc(100vw-2rem)] sm:w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
         style={getTooltipStyle()}
       >
         {/* Progress bar */}

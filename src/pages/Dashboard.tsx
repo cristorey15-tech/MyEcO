@@ -122,9 +122,9 @@ export function Dashboard() {
           </p>
         </div>
         <UITooltip content={t('common.add') + ' ' + t('common.transaction')}>
-          <Button onClick={() => navigate('/transactions')} className="hidden sm:flex">
+          <Button onClick={() => navigate('/transactions')} className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
-            {t('common.add')} {t('common.transaction')}
+            <span className="hidden sm:inline">{t('common.add')} {t('common.transaction')}</span>
           </Button>          </UITooltip>
         </div>
 
@@ -193,7 +193,7 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             {spendingData.length > 0 ? (
-              <div className="flex items-center gap-6">
+              <div className="flex flex-col sm:flex-row items-center gap-6">
                 <div className="w-40 h-40 flex-shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>

@@ -239,7 +239,7 @@ export function Transactions() {
           visible: { transition: { staggerChildren: 0.06, delayChildren: 0.15 } },
           hidden: {},
         }}
-        className="flex gap-2"
+        className="flex gap-2 flex-wrap"
       >
         <motion.div variants={quickAddItemVariants} transition={quickAddItemTransition}>
           <Tooltip content={`${t('common.add')} ${t('transactions.type_expense').toLowerCase()}`}>

@@ -144,7 +144,7 @@ export function Reports() {
       />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent>
             <div className="flex items-center justify-between">
