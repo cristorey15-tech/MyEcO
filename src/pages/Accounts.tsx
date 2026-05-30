@@ -108,7 +108,7 @@ export function Accounts() {
       const newConverted: Record<number, number> = {};
       results.forEach((r, i) => { newConverted[r.id] = converted[i]; });
       setConvertedBalances(newConverted);
-    })().catch(err => console.error('Error loading account balances:', err));
+    })().catch(err => console.error('Error loading account balances in Accounts:', err));
     return () => { cancelled = true; };
   }, [accounts, defaultCurrency]);
 

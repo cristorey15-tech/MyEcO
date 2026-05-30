@@ -86,7 +86,10 @@ export function Dashboard() {
       results.forEach((r, i) => { newConverted[r.id] = converted[i]; });
       setConvertedBalances(newConverted);
       setRatesReady(true);
-    })().catch(err => console.error('Error loading account balances:', err));
+    })().catch(err => {
+      console.error('Error loading account balances:', err);
+      setRatesReady(true);
+    });
     return () => { cancelled = true; };
   }, [accounts, defaultCurrency]);
 
