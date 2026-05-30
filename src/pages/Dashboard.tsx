@@ -18,7 +18,7 @@ export function Dashboard() {
   const navigate = useNavigate();
   const { defaultCurrency } = useAppStore();
 
-  const accounts = useLiveQuery(() => db.accounts.where('isArchived').equals(0).toArray());
+  const accounts = useLiveQuery(() => db.accounts.filter(a => !a.isArchived).toArray());
 
   // Separate query: last 10 recent transactions for the list view
   const recentTransactions = useLiveQuery(() =>
@@ -45,16 +45,32 @@ export function Dashboard() {
 
   const [balances, setBalances] = useState<Record<number, number>>({});
   const [convertedBalances, setConvertedBalances] = useState<Record<number, number>>({});
+  const [ratesReady, setRatesReady] = useState(false);
 
-  // Batch-convert all accounts at once
+  // Batch-convert all accounts at once (auto-fetch rates if missing first)
   useEffect(() => {
-    if (!accounts) return;
-    Promise.all(
-      accounts.map(async (acc) => {
-        const balance = await getAccountBalance(acc.id!);
-        return { id: acc.id!, balance, currency: acc.currency };
-      })
-    ).then(async (results) => {
+    if (!accounts || accounts.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      // Auto-fetch exchange rates if none exist yet
+      const count = await db.exchangeRates.count();
+      if (count === 0) {
+        const { fetchAllRates } = await import('@/lib/exchangeRateService');
+        const result = await fetchAllRates();
+        if (!result.success) {
+          console.warn('Auto-fetch rates failed:', result.errors.join(', '));
+        }
+      }
+      if (cancelled) return;
+
+      const results = await Promise.all(
+        accounts.map(async (acc) => {
+          const balance = await getAccountBalance(acc.id!);
+          return { id: acc.id!, balance, currency: acc.currency };
+        })
+      );
+      if (cancelled) return;
+
       const newBalances: Record<number, number> = {};
       results.forEach(r => { newBalances[r.id] = r.balance; });
       setBalances(newBalances);
@@ -64,10 +80,14 @@ export function Dashboard() {
         results.map(r => ({ amount: r.balance, from: r.currency })),
         defaultCurrency
       );
+      if (cancelled) return;
+
       const newConverted: Record<number, number> = {};
       results.forEach((r, i) => { newConverted[r.id] = converted[i]; });
       setConvertedBalances(newConverted);
-    });
+      setRatesReady(true);
+    })().catch(err => console.error('Error loading account balances:', err));
+    return () => { cancelled = true; };
   }, [accounts, defaultCurrency]);
 
   // Batch-convert monthly transactions at once
@@ -148,7 +168,7 @@ export function Dashboard() {
       } else {
         setBudgetComparison([]);
       }
-    });
+    }).catch(err => console.error('Error converting monthly transactions:', err));
   }, [monthlyTransactions, defaultCurrency, categories, monthlyBudgets]);
 
   const totalBalance = Object.values(convertedBalances).reduce((sum, b) => sum + b, 0);
@@ -163,7 +183,9 @@ export function Dashboard() {
     return accounts?.find(a => a.id === id)?.name || '—';
   };
 
+  // Show loading skeleton until all data AND rates are ready
   const isLoading = !accounts || !recentTransactions || !monthlyTransactions || !categories || !monthlyBudgets;
+  const isConverting = accounts && accounts.length > 0 && !ratesReady;
 
   return (
     <div className="space-y-6">
@@ -188,6 +210,17 @@ export function Dashboard() {
           <div className="bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-6 animate-pulse">
             <Skeleton className="h-4 w-24 bg-white/20" />
             <Skeleton className="h-8 w-36 mt-3 bg-white/20" />
+          </div>
+          {[1, 2].map(i => (
+            <Card key={i}><CardContent><Skeleton className="h-4 w-16" /><Skeleton className="h-8 w-28 mt-3" /></CardContent></Card>
+          ))}
+        </div>
+      ) : isConverting ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-6 animate-pulse">
+            <Skeleton className="h-4 w-24 bg-white/20" />
+            <Skeleton className="h-8 w-36 mt-3 bg-white/20" />
+            <Skeleton className="h-4 w-32 mt-3 bg-white/20" />
           </div>
           {[1, 2].map(i => (
             <Card key={i}><CardContent><Skeleton className="h-4 w-16" /><Skeleton className="h-8 w-28 mt-3" /></CardContent></Card>

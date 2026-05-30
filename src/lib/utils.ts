@@ -120,7 +120,11 @@ export async function batchConvertAmounts(
     uniqueFrom.map(async (from) => {
       if (from === to) return { from, rate: 1 };
       const rate = await getExchangeRate(from, to);
-      return { from, rate: rate > 0 ? rate : 1 };
+      if (rate <= 0) {
+        console.warn(`No exchange rate found for ${from} → ${to}, showing unconverted amount`);
+        return { from, rate: 1 };
+      }
+      return { from, rate };
     })
   );
 
