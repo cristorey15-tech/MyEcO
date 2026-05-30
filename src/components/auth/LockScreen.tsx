@@ -11,7 +11,7 @@ interface LockScreenProps {
 
 export function LockScreen({ children }: LockScreenProps) {
   const { t } = useTranslation();
-  const { pinHash, lockEnabled, biometricEnabled, isLocked, setIsLocked } = useAppStore();
+  const { pinHash, pinLength, lockEnabled, biometricEnabled, isLocked, setIsLocked } = useAppStore();
   const [pin, setPin] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [bioAvailable, setBioAvailable] = useState(false);
@@ -46,8 +46,8 @@ export function LockScreen({ children }: LockScreenProps) {
     setError('');
     setPin(prev => {
       const next = [...prev, digit];
-      if (next.length >= 6) {
-        // Auto-verify when 6 digits entered
+      if (next.length >= pinLength) {
+        // Auto-verify when all digits entered
         setTimeout(() => verify(next.join('')), 50);
         return next;
       }
@@ -111,7 +111,7 @@ export function LockScreen({ children }: LockScreenProps) {
 
         {/* PIN Dots */}
         <div className="flex items-center gap-3 h-8">
-          {[0, 1, 2, 3, 4, 5].map(i => (
+          {Array.from({ length: pinLength }, (_, i) => i).map(i => (
             <motion.div
               key={i}
               initial={false}

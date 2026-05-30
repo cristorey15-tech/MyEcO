@@ -97,7 +97,7 @@ function Sparkline({ data, width = 80, height = 24, color = '#2563eb' }: {
 export function Settings() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { defaultCurrency, setDefaultCurrency, resetTour, tourCompleted, resetAllState, userName, setUserName, pinHash, setPinHash, lockEnabled, setLockEnabled, biometricEnabled, setBiometricEnabled } = useAppStore();
+  const { defaultCurrency, setDefaultCurrency, resetTour, tourCompleted, resetAllState, userName, setUserName, pinHash, setPinHash, pinLength, setPinLength, lockEnabled, setLockEnabled, biometricEnabled, setBiometricEnabled } = useAppStore();
   const { confirm, ConfirmDialog } = useConfirm();
   const categories = useLiveQuery(() => db.categories.toArray());
   const exchangeRates = useLiveQuery(() => db.exchangeRates.toArray());
@@ -165,8 +165,8 @@ export function Settings() {
     if (pinModalMode === 'set' || pinModalMode === 'change') {
       if (!pinForm.newPin) {
         errors.newPin = t('security.pinRequired');
-      } else if (pinForm.newPin.length < 4) {
-        errors.newPin = t('security.pinTooShort');
+      } else if (pinForm.newPin.length < pinLength) {
+        errors.newPin = t('security.pinTooShort', { digits: pinLength });
       } else if (pinForm.newPin !== pinForm.confirmPin) {
         errors.confirmPin = t('security.pinMismatch');
       }
@@ -1214,10 +1214,10 @@ export function Settings() {
               label={t('security.enterCurrentPin')}
               type="password"
               inputMode="numeric"
-              maxLength={6}
+              maxLength={pinLength}
               value={pinForm.currentPin}
               onChange={(e) => {
-                const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                const val = e.target.value.replace(/\D/g, '').slice(0, pinLength);
                 setPinForm(prev => ({ ...prev, currentPin: val }));
                 setPinFormErrors({});
               }}
@@ -1226,14 +1226,42 @@ export function Settings() {
           )}
           {pinModalMode !== 'remove' && (
             <>
+              {/* PIN Length selector */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('security.pinLength')}</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPinLength(4)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+                      pinLength === 4
+                        ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    }`}
+                  >
+                    4 {t('security.digits')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPinLength(6)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+                      pinLength === 6
+                        ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    }`}
+                  >
+                    6 {t('security.digits')}
+                  </button>
+                </div>
+              </div>
               <Input
                 label={t('security.enterNewPin')}
                 type="password"
                 inputMode="numeric"
-                maxLength={6}
+                maxLength={pinLength}
                 value={pinForm.newPin}
                 onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  const val = e.target.value.replace(/\D/g, '').slice(0, pinLength);
                   setPinForm(prev => ({ ...prev, newPin: val }));
                   setPinFormErrors({});
                 }}
@@ -1243,10 +1271,10 @@ export function Settings() {
                 label={t('security.confirmPin')}
                 type="password"
                 inputMode="numeric"
-                maxLength={6}
+                maxLength={pinLength}
                 value={pinForm.confirmPin}
                 onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  const val = e.target.value.replace(/\D/g, '').slice(0, pinLength);
                   setPinForm(prev => ({ ...prev, confirmPin: val }));
                   setPinFormErrors({});
                 }}

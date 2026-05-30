@@ -34,6 +34,8 @@ interface AppState {
   setUserName: (name: string) => void;
   pinHash: string;
   setPinHash: (hash: string) => void;
+  pinLength: number;
+  setPinLength: (length: number) => void;
   lockEnabled: boolean;
   setLockEnabled: (enabled: boolean) => void;
   biometricEnabled: boolean;
@@ -63,6 +65,7 @@ export const useAppStore = create<AppState>()(
       transactionFilters: { ...defaultTransactionFilters },
       userName: '',
       pinHash: '',
+      pinLength: 4,
       lockEnabled: false,
       biometricEnabled: false,
       isLocked: false,
@@ -81,12 +84,14 @@ export const useAppStore = create<AppState>()(
         transactionFilters: { ...defaultTransactionFilters },
         userName: '',
         pinHash: '',
+        pinLength: 4,
         lockEnabled: false,
         biometricEnabled: false,
         isLocked: false,
       }),
       setUserName: (name) => set({ userName: name }),
       setPinHash: (hash) => set({ pinHash: hash }),
+      setPinLength: (length) => set({ pinLength: length }),
       setLockEnabled: (enabled) => set({ lockEnabled: enabled }),
       setBiometricEnabled: (enabled) => set({ biometricEnabled: enabled }),
       setIsLocked: (locked) => set({ isLocked: locked }),
