@@ -11,7 +11,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'icons/*.png'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         // Cache IndexedDB API calls via network first, fallback to cache
@@ -44,9 +44,15 @@ export default defineConfig({
         screenshots: [],
         icons: [
           {
-            src: '/favicon.svg',
+            src: '/MyEcO/icons/icon-192x192.png',
             sizes: '192x192',
-            type: 'image/svg+xml',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
+          {
+            src: '/MyEcO/icons/icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
             purpose: 'any maskable',
           },
         ],
