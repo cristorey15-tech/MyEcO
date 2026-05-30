@@ -643,6 +643,13 @@ export function Transactions() {
             </div>
           </div>
 
+          <Select
+            label={t('common.currency')}
+            value={formData.currency}
+            onChange={(e) => { setFormData(prev => ({ ...prev, currency: e.target.value })); setFormErrors({}); }}
+            options={CURRENCIES.map(c => ({ value: c.code, label: `${c.flag} ${c.code} - ${c.symbol}` }))}
+          />
+
           <Input
             label={t('common.description')}
             value={formData.description}
