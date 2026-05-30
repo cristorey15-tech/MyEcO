@@ -194,7 +194,7 @@ export function Dashboard() {
           <CardContent>
             {spendingData.length > 0 ? (
               <div className="flex flex-col sm:flex-row items-center gap-6">
-                <div className="w-40 h-40 flex-shrink-0">
+                <div className="w-40 h-40 min-w-[160px] min-h-[160px] flex-shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
