@@ -24,6 +24,7 @@ interface AppState {
   setupCompleted: boolean;
   completeSetup: () => void;
   resetSetup: () => void;
+  resetAllState: () => void;
   // Persisted transaction filters
   transactionFilters: TransactionFilterState;
   setTransactionFilters: (filters: Partial<TransactionFilterState>) => void;
@@ -55,8 +56,14 @@ export const useAppStore = create<AppState>()(
       setHydrated: () => set({ isHydrated: true }),
       completeTour: () => set({ tourCompleted: true }),
       resetTour: () => set({ tourCompleted: false }),
-      completeSetup: () => set({ setupCompleted: true }),
-      resetSetup: () => set({ setupCompleted: false }),
+  completeSetup: () => set({ setupCompleted: true }),
+  resetSetup: () => set({ setupCompleted: false }),
+  resetAllState: () => set({
+    defaultCurrency: 'USD',
+    tourCompleted: false,
+    setupCompleted: false,
+    transactionFilters: { ...defaultTransactionFilters },
+  }),
       setTransactionFilters: (filters) => set((state) => ({
         transactionFilters: { ...state.transactionFilters, ...filters },
       })),

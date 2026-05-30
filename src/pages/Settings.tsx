@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/lib/db';
+import { useNavigate } from 'react-router-dom';
+import { db, seedCategories } from '@/lib/db';
 import { useAppStore } from '@/stores/useAppStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { useConfirm } from '@/hooks/useConfirm';
@@ -12,13 +13,14 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { Tooltip } from '@/components/ui/tooltip';
-import { Plus, Edit3, Trash2, Globe, Wallet, Palette, Repeat, RotateCcw, Save, DownloadCloud, Loader2, Bell, BellOff } from 'lucide-react';
+import { Plus, Edit3, Trash2, Globe, Wallet, Palette, Repeat, RotateCcw, Save, DownloadCloud, Loader2, Bell, BellOff, AlertTriangle } from 'lucide-react';
 import type { Category } from '@/types';
 import { CURRENCIES } from '@/types';
 
 export function Settings() {
   const { t, i18n } = useTranslation();
-  const { defaultCurrency, setDefaultCurrency, resetTour, tourCompleted } = useAppStore();
+  const navigate = useNavigate();
+  const { defaultCurrency, setDefaultCurrency, resetTour, tourCompleted, resetAllState } = useAppStore();
   const { confirm, ConfirmDialog } = useConfirm();
   const categories = useLiveQuery(() => db.categories.toArray());
   const exchangeRates = useLiveQuery(() => db.exchangeRates.toArray());
@@ -204,6 +206,35 @@ export function Settings() {
   };
 
   const currencyOptions = CURRENCIES.map(c => ({ value: c.code, label: `${c.flag} ${c.code} - ${c.name}` }));
+
+  const handleResetAllData = async () => {
+    const confirmed = await confirm({
+      title: t('settings.resetDataTitle'),
+      message: t('settings.resetDataDesc'),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    // Clear all IndexedDB tables
+    await db.accounts.clear();
+    await db.transactions.clear();
+    await db.categories.clear();
+    await db.budgets.clear();
+    await db.goals.clear();
+    await db.debts.clear();
+    await db.sharedBudgets.clear();
+    await db.exchangeRates.clear();
+
+    // Re-seed default categories
+    await seedCategories();
+
+    // Reset store state
+    resetAllState();
+
+    // Redirect to welcome page
+    navigate('/welcome');
+  };
 
   const exportAllData = async () => {
     const data = {
@@ -407,20 +438,18 @@ export function Settings() {
                      style={{ borderColor: cat.color + '30' }}>
                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
                   <span>{cat.name}</span>
-                  {!cat.isDefault && (
-                    <div className="flex ml-1">
-                      <Tooltip content={t('common.edit')}>
-                        <button onClick={() => openEditCategory(cat)} className="p-0.5 text-gray-400 hover:text-gray-600">
-                          <Edit3 className="w-3 h-3" />
-                        </button>
-                      </Tooltip>
-                      <Tooltip content={t('common.delete')}>
-                        <button onClick={() => deleteCategory(cat.id!)} className="p-0.5 text-gray-400 hover:text-danger">
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </Tooltip>
-                    </div>
-                  )}
+                  <div className="flex ml-1">
+                    <Tooltip content={t('common.edit')}>
+                      <button onClick={() => openEditCategory(cat)} className="p-0.5 text-gray-400 hover:text-gray-600">
+                        <Edit3 className="w-3 h-3" />
+                      </button>
+                    </Tooltip>
+                    <Tooltip content={t('common.delete')}>
+                      <button onClick={() => deleteCategory(cat.id!)} className="p-0.5 text-gray-400 hover:text-danger">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </Tooltip>
+                  </div>
                 </div>
               ))}
             </div>
@@ -433,20 +462,18 @@ export function Settings() {
                      style={{ borderColor: cat.color + '30' }}>
                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
                   <span>{cat.name}</span>
-                  {!cat.isDefault && (
-                    <div className="flex ml-1">
-                      <Tooltip content={t('common.edit')}>
-                        <button onClick={() => openEditCategory(cat)} className="p-0.5 text-gray-400 hover:text-gray-600">
-                          <Edit3 className="w-3 h-3" />
-                        </button>
-                      </Tooltip>
-                      <Tooltip content={t('common.delete')}>
-                        <button onClick={() => deleteCategory(cat.id!)} className="p-0.5 text-gray-400 hover:text-danger">
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </Tooltip>
-                    </div>
-                  )}
+                  <div className="flex ml-1">
+                    <Tooltip content={t('common.edit')}>
+                      <button onClick={() => openEditCategory(cat)} className="p-0.5 text-gray-400 hover:text-gray-600">
+                        <Edit3 className="w-3 h-3" />
+                      </button>
+                    </Tooltip>
+                    <Tooltip content={t('common.delete')}>
+                      <button onClick={() => deleteCategory(cat.id!)} className="p-0.5 text-gray-400 hover:text-danger">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </Tooltip>
+                  </div>
                 </div>
               ))}
             </div>
@@ -517,15 +544,22 @@ export function Settings() {
           <h2 className="text-base font-semibold text-gray-900">{t('settings.dataManagement')}</h2>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Tooltip content={t('settings.exportAllData')}>
               <Button variant="outline" onClick={exportAllData}>
+                <DownloadCloud className="w-4 h-4" />
                 {t('settings.exportAllData')}
               </Button>
             </Tooltip>
             <Tooltip content={t('settings.importData')}>
               <Button variant="outline" onClick={importData}>
                 {t('settings.importData')}
+              </Button>
+            </Tooltip>
+            <Tooltip content={t('settings.resetData')}>
+              <Button variant="outline" className="text-danger border-danger/30 hover:bg-danger-light hover:text-danger hover:border-danger" onClick={handleResetAllData}>
+                <AlertTriangle className="w-4 h-4" />
+                {t('settings.resetData')}
               </Button>
             </Tooltip>
           </div>

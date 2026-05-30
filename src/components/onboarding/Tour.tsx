@@ -97,7 +97,7 @@ export function Tour() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { tourCompleted, completeTour } = useAppStore();
+  const { tourCompleted, completeTour, completeSetup } = useAppStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [targetPosition, setTargetPosition] = useState<DOMRect | null>(null);
   const [showTour, setShowTour] = useState(false);
@@ -141,11 +141,13 @@ export function Tour() {
 
   const goToStep = useCallback((index: number) => {
     const step = tourSteps[index];
+    // Mark setup as completed so the route guard allows navigation away from /welcome
+    completeSetup();
     if (step.route && location.pathname !== step.route) {
       navigate(step.route);
     }
     setCurrentStep(index);
-  }, [navigate, location.pathname]);
+  }, [navigate, location.pathname, completeSetup]);
 
   const handleNext = () => {
     if (currentStep < tourSteps.length - 1) {
