@@ -8,11 +8,24 @@ import { useAppStore } from '@/stores/useAppStore';
 import { useConfirm } from '@/hooks/useConfirm';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Modal } from '@/components/ui/modal';
 import { Skeleton, TableRowSkeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ArrowUpRight, ArrowDownRight, ArrowLeftRight, Plus, Edit3, Wallet, CreditCard, PiggyBank, TrendingUp, X } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ArrowDownRight, ArrowLeftRight, Plus, Edit3, Wallet, CreditCard, PiggyBank, TrendingUp, X, Repeat, AlertTriangle, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
-import type { AccountType } from '@/types';
+import { motion } from 'framer-motion';
+import { paginate } from '@/lib/paginationUtils';
+import {
+  pagBtnTransition,
+  pagContainerVariants,
+  pagChevronLeftVariants,
+  pagPageBtnVariants,
+  pagChevronRightVariants,
+} from '@/lib/animations';
+import type { AccountType, Account, Transaction, TransactionType, RecurringInterval } from '@/types';
+import { CURRENCIES, ACCOUNT_TYPES } from '@/types';
 
 const accountIcons: Record<AccountType, typeof Wallet> = {
   cash: Wallet,
@@ -57,8 +70,43 @@ export function AccountDetail() {
     [accountId]
   );
 
+  const accounts = useLiveQuery(() => db.accounts.toArray());
+
   const [balance, setBalance] = useState<number>(0);
   const [convertedBalance, setConvertedBalance] = useState<number>(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [accountEditModalOpen, setAccountEditModalOpen] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [accountFormErrors, setAccountFormErrors] = useState<Record<string, string>>({});
+  const [originalCurrency, setOriginalCurrency] = useState('');
+  const [accountFormData, setAccountFormData] = useState({
+    name: '',
+    type: 'checking' as AccountType,
+    currency: defaultCurrency,
+    initialBalance: 0,
+    color: '#2563eb',
+  });
+
+  const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 15;
+
+  const [formData, setFormData] = useState({
+    type: 'expense' as TransactionType,
+    accountId: 0,
+    toAccountId: 0,
+    categoryId: 0,
+    amount: 0,
+    currency: defaultCurrency,
+    date: new Date().toISOString().split('T')[0],
+    description: '',
+    notes: '',
+    isRecurring: false,
+    recurringInterval: '' as RecurringInterval | '',
+  });
 
   useEffect(() => {
     if (!account) return;
@@ -88,7 +136,14 @@ export function AccountDetail() {
   // Merge and sort all relevant transactions
   const allTxns = [...(transactions || []), ...(incomingTransfers || [])]
     .filter((txn, i, arr) => arr.findIndex(t => t.id === txn.id) === i) // dedup
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === 'date') cmp = new Date(a.date).getTime() - new Date(b.date).getTime();
+      else if (sortBy === 'amount') cmp = a.amount - b.amount;
+      return sortDir === 'desc' ? -cmp : cmp;
+    });
+
+  const { totalPages, safePage, pageItems: paginatedTxns, visiblePages } = paginate(allTxns, currentPage, PAGE_SIZE);
 
   const stats = {
     income: allTxns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0),
@@ -99,6 +154,109 @@ export function AccountDetail() {
 
   const getCategoryName = (catId: number) => categories?.find(c => c.id === catId)?.name || '—';
   const getCategoryColor = (catId: number) => categories?.find(c => c.id === catId)?.color || '#6b7280';
+  const getAccountName = (id: number) => accounts?.find(a => a.id === id)?.name || '—';
+
+  const openAccountEditModal = () => {
+    if (!account) return;
+    setEditingAccount(account);
+    setAccountFormErrors({});
+    setOriginalCurrency(account.currency);
+    setAccountFormData({
+      name: account.name,
+      type: account.type,
+      currency: account.currency,
+      initialBalance: account.initialBalance,
+      color: account.color,
+    });
+    setAccountEditModalOpen(true);
+  };
+
+  const validateAccountForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    if (!accountFormData.name.trim()) {
+      errors.name = t('validation.required');
+    }
+    if (!accountFormData.currency.trim()) {
+      errors.currency = t('validation.required');
+    } else if (accountFormData.currency.length !== 3) {
+      errors.currency = t('validation.maxLength', { max: 3 });
+    }
+    if (accountFormData.initialBalance < 0) {
+      errors.initialBalance = t('validation.invalidAmount');
+    }
+    setAccountFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleAccountSave = async () => {
+    if (!validateAccountForm() || !editingAccount) return;
+    await db.accounts.update(editingAccount.id!, {
+      ...accountFormData,
+      updatedAt: new Date(),
+    });
+    setAccountEditModalOpen(false);
+  };
+
+  const openEditModal = (txn: Transaction) => {
+    setEditingTxn(txn);
+    setFormErrors({});
+    setFormData({
+      type: txn.type,
+      accountId: txn.accountId,
+      toAccountId: txn.toAccountId || 0,
+      categoryId: txn.categoryId,
+      amount: txn.amount,
+      currency: txn.currency,
+      date: new Date(txn.date).toISOString().split('T')[0],
+      description: txn.description,
+      notes: txn.notes,
+      isRecurring: txn.isRecurring,
+      recurringInterval: txn.recurringInterval || '',
+    });
+    setIsModalOpen(true);
+  };
+
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    if (!formData.amount || formData.amount <= 0) {
+      errors.amount = t('validation.positiveAmount');
+    }
+    if (!formData.accountId) {
+      errors.accountId = t('validation.selectAccount');
+    }
+    if (formData.type === 'transfer') {
+      if (!formData.toAccountId) {
+        errors.toAccountId = t('validation.selectAccount');
+      }
+      if (formData.toAccountId === formData.accountId) {
+        errors.toAccountId = t('validation.accountsMustDiffer');
+      }
+    } else if (!formData.categoryId) {
+      errors.categoryId = t('validation.selectCategory');
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!validateForm()) return;
+    const now = new Date();
+    const data = {
+      ...formData,
+      date: new Date(formData.date),
+      tags: [],
+      isRecurring: formData.isRecurring,
+      recurringInterval: formData.isRecurring ? formData.recurringInterval || undefined : undefined,
+      createdAt: now,
+      updatedAt: now,
+    };
+    if (editingTxn) {
+      await db.transactions.update(editingTxn.id!, { ...data, createdAt: editingTxn.createdAt });
+    } else {
+      await db.transactions.add(data);
+    }
+    setIsModalOpen(false);
+  };
 
   const handleDelete = async (txnId: number) => {
     const confirmed = await confirm({
@@ -156,7 +314,7 @@ export function AccountDetail() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate(`/accounts?edit=${accountId}`)}
+              onClick={openAccountEditModal}
             >
               <Edit3 className="w-4 h-4" />
               {t('common.edit')}
@@ -186,7 +344,10 @@ export function AccountDetail() {
           <h1 className="text-2xl font-bold text-gray-900">{account.name}</h1>
           <div className="flex items-center gap-2 mt-1">
             <Badge variant="info">{t(`accounts.${account.type}`)}</Badge>
-            <Badge>{currency}</Badge>
+            <Badge className={cn(currency !== defaultCurrency && 'ring-1 ring-primary/30')}>{currency}</Badge>
+            {currency !== defaultCurrency && (
+              <ArrowLeftRight className="w-3.5 h-3.5 text-primary/60" />
+            )}
             {account.isArchived && <Badge variant="warning">{t('accounts.archived')}</Badge>}
           </div>
         </div>
@@ -198,11 +359,9 @@ export function AccountDetail() {
           )}>
             {formatCurrency(balance, currency)}
           </p>
-          {currency !== defaultCurrency && (
-            <p className="text-xs text-gray-400 mt-0.5">
-              ≈ {formatCurrency(convertedBalance, defaultCurrency)}
-            </p>
-          )}
+          <p className="text-xs text-gray-400 mt-0.5">
+            ≈ {formatCurrency(convertedBalance, defaultCurrency)}
+          </p>
         </div>
       </div>
 
@@ -248,18 +407,54 @@ export function AccountDetail() {
 
       {/* Transactions */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">{t('transactions.title')}</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-gray-900">{t('transactions.title')}</h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (sortBy !== 'date') { setSortBy('date'); setSortDir('desc'); }
+                else setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+              }}
+              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                sortBy === 'date' ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <ArrowUpDown className="w-3 h-3" />
+              {t('common.date')}
+              {sortBy === 'date' && (
+                <span className="text-[10px]">{sortDir === 'desc' ? '↓' : '↑'}</span>
+              )}
+            </button>
+            <button
+              onClick={() => {
+                if (sortBy !== 'amount') { setSortBy('amount'); setSortDir('desc'); }
+                else setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+              }}
+              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                sortBy === 'amount' ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <ArrowUpDown className="w-3 h-3" />
+              {t('common.amount')}
+              {sortBy === 'amount' && (
+                <span className="text-[10px]">{sortDir === 'desc' ? '↓' : '↑'}</span>
+              )}
+            </button>
+          </div>
+        </div>
         <Card>
           <CardContent className="p-0">
             {allTxns.length > 0 ? (
+              <>
               <div className="divide-y divide-gray-50">
-                {allTxns.slice(0, 50).map((txn) => {
+                {paginatedTxns.map((txn) => {
                   const isIncoming = txn.toAccountId === accountId && txn.accountId !== accountId;
                   const typeLabel = isIncoming ? t('transactions.type_transfer') : t(`transactions.type_${txn.type}`);
                   return (
                     <div
                       key={txn.id}
-                      className="group flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+                      className="group flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() => openEditModal(txn)}
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <div className={cn(
@@ -284,6 +479,17 @@ export function AccountDetail() {
                             <span className="text-xs text-gray-400">{formatDate(txn.date)}</span>
                             <span className="text-gray-300">·</span>
                             <span className="text-xs text-gray-400">{txn.currency}</span>
+                            {txn.type === 'transfer' && (
+                              <>
+                                <span className="text-gray-300">·</span>
+                                <span className="text-xs text-gray-500">
+                                  {isIncoming
+                                    ? `← ${getAccountName(txn.accountId)}`
+                                    : `→ ${getAccountName(txn.toAccountId!)}`
+                                  }
+                                </span>
+                              </>
+                            )}
                             <span className="text-gray-300">·</span>
                             <span
                               className="w-2 h-2 rounded-full inline-block"
@@ -313,6 +519,61 @@ export function AccountDetail() {
                   );
                 })}
               </div>
+
+              {totalPages > 1 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeOut', delay: 0.1 }}
+                  className="flex items-center justify-between px-5 py-3 border-t border-gray-100"
+                >
+                  <p className="text-xs text-gray-400">
+                    {allTxns.length} {t('transactions.title').toLowerCase()}
+                  </p>
+                  <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={pagContainerVariants}
+                    className="flex items-center gap-2"
+                  >
+                    <motion.button
+                      variants={pagChevronLeftVariants}
+                      transition={pagBtnTransition}
+                      onClick={() => setCurrentPage(p => p - 1)}
+                      disabled={currentPage <= 1}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </motion.button>
+                    {visiblePages.map(pageNum => (
+                      <motion.button
+                        key={pageNum}
+                        variants={pagPageBtnVariants}
+                        transition={pagBtnTransition}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={cn(
+                          'w-7 h-7 rounded-lg text-xs font-medium transition-colors',
+                          pageNum === safePage
+                            ? 'bg-primary text-white'
+                            : 'text-gray-500 hover:bg-gray-100'
+                        )}
+                      >
+                        {pageNum}
+                      </motion.button>
+                    ))}
+                    <motion.button
+                      variants={pagChevronRightVariants}
+                      transition={pagBtnTransition}
+                      onClick={() => setCurrentPage(p => p + 1)}
+                      disabled={currentPage >= totalPages}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </motion.button>
+                  </motion.div>
+                </motion.div>
+              )}
+              </>
             ) : (
               <div className="text-center py-12">
                 <ArrowLeftRight className="w-12 h-12 mx-auto text-gray-300 mb-3" />
@@ -328,6 +589,221 @@ export function AccountDetail() {
           </CardContent>
         </Card>
       </div>
+      {/* Edit Account Modal */}
+      <Modal
+        isOpen={accountEditModalOpen}
+        onClose={() => setAccountEditModalOpen(false)}
+        title={t('accounts.editAccount')}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setAccountEditModalOpen(false)}>{t('common.cancel')}</Button>
+            <Button onClick={handleAccountSave}>{t('common.save')}</Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Input
+            label={t('accounts.accountName')}
+            value={accountFormData.name}
+            onChange={(e) => { setAccountFormData(prev => ({ ...prev, name: e.target.value })); setAccountFormErrors({}); }}
+            placeholder={t('accounts.namePlaceholder')}
+            error={accountFormErrors.name}
+          />
+          <Select
+            label={t('accounts.accountType')}
+            value={accountFormData.type}
+            onChange={(e) => setAccountFormData(prev => ({ ...prev, type: e.target.value as AccountType }))}
+            options={ACCOUNT_TYPES.map(at => ({ value: at.value, label: t(`accounts.${at.value}`) }))}
+          />
+          <Input
+            label={t('accounts.initialBalance')}
+            type="number"
+            step="0.01"
+            value={accountFormData.initialBalance}
+            onChange={(e) => { setAccountFormData(prev => ({ ...prev, initialBalance: parseFloat(e.target.value) || 0 })); setAccountFormErrors({}); }}
+            error={accountFormErrors.initialBalance}
+          />
+          {/* Currency change warning */}
+          {editingAccount && accountFormData.currency !== originalCurrency && (transactions?.length || incomingTransfers?.length) && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-amber-800">{t('accounts.currencyWarningTitle')}</p>
+                <p className="text-xs text-amber-700 mt-1">{t('accounts.currencyWarningDesc')}</p>
+              </div>
+            </div>
+          )}
+          <Input
+            label={t('common.currency')}
+            value={accountFormData.currency}
+            onChange={(e) => { setAccountFormData(prev => ({ ...prev, currency: e.target.value.toUpperCase() })); setAccountFormErrors({}); }}
+            placeholder="MXN, USD, EUR"
+            maxLength={3}
+            error={accountFormErrors.currency}
+          />
+          <Input
+            label="Color"
+            type="color"
+            value={accountFormData.color}
+            onChange={(e) => setAccountFormData(prev => ({ ...prev, color: e.target.value }))}
+          />
+        </div>
+      </Modal>
+
+      {/* Edit Transaction Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingTxn ? t('transactions.editTransaction') : t('transactions.newTransaction')}
+        size="lg"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setIsModalOpen(false)}>{t('common.cancel')}</Button>
+            <Button onClick={handleSave}>{t('common.save')}</Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Select
+            label={t('common.type')}
+            value={formData.type}
+            onChange={(e) => {
+              const newType = e.target.value as TransactionType;
+              const defaultCat = categories?.find(c => c.type === (newType === 'income' ? 'income' : 'expense'));
+              setFormData(prev => ({
+                ...prev,
+                type: newType,
+                categoryId: defaultCat?.id || 0,
+                toAccountId: newType === 'transfer' ? (accounts?.[1]?.id || 0) : 0,
+              }));
+              setFormErrors({});
+            }}
+            options={[
+              { value: 'expense', label: t('transactions.type_expense') },
+              { value: 'income', label: t('transactions.type_income') },
+              { value: 'transfer', label: t('transactions.type_transfer') },
+            ]}
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label={formData.type === 'transfer' ? t('transactions.transferFrom') : t('common.account')}
+              value={String(formData.accountId)}
+              onChange={(e) => {
+                const newAccountId = Number(e.target.value);
+                const selectedAccount = accounts?.find(a => a.id === newAccountId);
+                setFormData(prev => ({
+                  ...prev,
+                  accountId: newAccountId,
+                  currency: selectedAccount?.currency || defaultCurrency,
+                }));
+                setFormErrors({});
+              }}
+              options={accounts?.map(a => ({ value: String(a.id), label: `${a.name} (${a.currency})` })) || []}
+              error={formErrors.accountId}
+            />
+            {formData.type === 'transfer' ? (
+              <Select
+                label={t('transactions.transferTo')}
+                value={String(formData.toAccountId)}
+                onChange={(e) => { setFormData(prev => ({ ...prev, toAccountId: Number(e.target.value) })); setFormErrors({}); }}
+                options={accounts?.map(a => ({ value: String(a.id), label: a.name })) || []}
+                error={formErrors.toAccountId}
+              />
+            ) : (
+              <Select
+                label={t('common.category')}
+                value={String(formData.categoryId)}
+                onChange={(e) => { setFormData(prev => ({ ...prev, categoryId: Number(e.target.value) })); setFormErrors({}); }}
+                options={(categories?.filter(c => c.type === (formData.type === 'income' ? 'income' : 'expense')) || []).map(c => ({ value: String(c.id), label: c.name }))}
+                error={formErrors.categoryId}
+              />
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label={`${t('common.amount')} (${formData.currency})`}
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={formData.amount || ''}
+              onChange={(e) => { setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 })); setFormErrors({}); }}
+              error={formErrors.amount}
+            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.date')}</label>
+              <input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+            </div>
+          </div>
+
+          <Select
+            label={t('common.currency')}
+            value={formData.currency}
+            onChange={(e) => { setFormData(prev => ({ ...prev, currency: e.target.value })); setFormErrors({}); }}
+            options={CURRENCIES.map(c => ({ value: c.code, label: `${c.flag} ${c.code} - ${c.symbol}` }))}
+          />
+
+          <Input
+            label={t('common.description')}
+            value={formData.description}
+            onChange={(e) => { setFormData(prev => ({ ...prev, description: e.target.value })); setFormErrors({}); }}
+            placeholder={t('transactions.descriptionPlaceholder')}
+          />
+
+          <Input
+            label={t('common.note')}
+            value={formData.notes}
+            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+            placeholder={t('transactions.notesPlaceholder')}
+          />
+
+          {/* Recurring toggle */}
+          <div className="pt-2 border-t border-gray-100">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={formData.isRecurring}
+                  onChange={(e) => setFormData(prev => ({ ...prev, isRecurring: e.target.checked }))}
+                />
+                <div className="w-10 h-6 rounded-full bg-gray-200 peer-checked:bg-primary transition-colors duration-200" />
+                <div className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm peer-checked:translate-x-4 transition-transform duration-200" />
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <Repeat className="w-4 h-4 text-primary" />
+                <span className="font-medium">{t('transactions.recurring')}</span>
+              </div>
+            </label>
+
+            {formData.isRecurring && (
+              <div className="mt-3 animate-slide-up">
+                <Select
+                  label={t('transactions.recurring')}
+                  value={formData.recurringInterval}
+                  onChange={(e) => setFormData(prev => ({ ...prev, recurringInterval: e.target.value as RecurringInterval }))}
+                  options={[
+                    { value: 'daily', label: t('transactions.everyDay') },
+                    { value: 'weekly', label: t('transactions.everyWeek') },
+                    { value: 'monthly', label: t('transactions.everyMonth') },
+                    { value: 'yearly', label: t('transactions.everyYear') },
+                  ]}
+                  placeholder={t('common.select')}
+                />
+                <p className="text-xs text-gray-400 mt-1.5">
+                  {t('transactions.recurringInfo')}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

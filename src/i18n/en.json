@@ -326,6 +326,43 @@
     "goalAchieved": "Goal achieved",
     "goalHalfway": "You are on track!"
   },
+  "profile": {
+    "title": "Profile",
+    "userName": "Your Name",
+    "userNamePlaceholder": "Enter your name",
+    "userNameDesc": "This name will be shown in the sidebar"
+  },
+  "security": {
+    "title": "Security",
+    "pinLock": "PIN Lock",
+    "pinLockDesc": "Protect your data with a numeric PIN code",
+    "setPin": "Set PIN",
+    "changePin": "Change PIN",
+    "removePin": "Remove PIN",
+    "enterPin": "Enter PIN",
+    "enterCurrentPin": "Enter current PIN",
+    "enterNewPin": "Enter new PIN",
+    "confirmPin": "Confirm PIN",
+    "pinMismatch": "PINs do not match",
+    "pinTooShort": "PIN must be at least 4 digits",
+    "pinRequired": "PIN is required",
+    "wrongPin": "Incorrect PIN",
+    "biometric": "Biometric Unlock",
+    "biometricDesc": "Use fingerprint or face to unlock the app",
+    "registerBiometric": "Register fingerprint",
+    "biometricRegistered": "Biometric registered",
+    "biometricNotAvailable": "Biometric not available on this device",
+    "unlockWithBiometric": "Unlock with fingerprint",
+    "unlockWithPin": "Enter PIN"
+  },
+  "lockScreen": {
+    "title": "MyEco",
+    "subtitle": "Enter your PIN to unlock",
+    "useBiometric": "Use fingerprint",
+    "usePin": "Use PIN",
+    "wrongPin": "Incorrect PIN",
+    "locked": "App locked"
+  },
   "validation": {
     "required": "This field is required",
     "invalidAmount": "Please enter a valid amount",

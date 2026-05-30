@@ -6,6 +6,7 @@ import { db, seedCategories } from '@/lib/db';
 import { useAppStore } from '@/stores/useAppStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { useConfirm } from '@/hooks/useConfirm';
+import { hashPin, isBiometricAvailable, registerBiometric, removeBiometricCredential } from '@/lib/auth';
 import { fetchAllRates, getLastRateUpdate, needsRefresh, getRateHistory, detectRateDrop } from '@/lib/exchangeRateService';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ import {
   Briefcase, Laptop, Gift, PlusCircle,
   Utensils, Car, Home, Zap, Heart, Film, Book, ShoppingBag, Plane,
   MoreHorizontal, Shield, FileText, Music, Camera, Smartphone,
-  Dumbbell, Wifi, Coffee, Star
+  Dumbbell, Wifi, Coffee, Star, User, Lock, Fingerprint, KeyRound
 } from 'lucide-react';
 import type { Category } from '@/types';
 import { CURRENCIES } from '@/types';
@@ -96,7 +97,7 @@ function Sparkline({ data, width = 80, height = 24, color = '#2563eb' }: {
 export function Settings() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { defaultCurrency, setDefaultCurrency, resetTour, tourCompleted, resetAllState } = useAppStore();
+  const { defaultCurrency, setDefaultCurrency, resetTour, tourCompleted, resetAllState, userName, setUserName, pinHash, setPinHash, lockEnabled, setLockEnabled, biometricEnabled, setBiometricEnabled } = useAppStore();
   const { confirm, ConfirmDialog } = useConfirm();
   const categories = useLiveQuery(() => db.categories.toArray());
   const exchangeRates = useLiveQuery(() => db.exchangeRates.toArray());
@@ -118,6 +119,78 @@ export function Settings() {
     }
     return counts;
   }, [transactions]);
+
+  // --- PIN & Biometric state ---
+  const [pinModalMode, setPinModalMode] = useState<'set' | 'change' | 'remove' | null>(null);
+  const [pinForm, setPinForm] = useState({ currentPin: '', newPin: '', confirmPin: '' });
+  const [pinFormErrors, setPinFormErrors] = useState<Record<string, string>>({});
+  const [bioAvailable, setBioAvailable] = useState(false);
+  const [bioRegistered, setBioRegistered] = useState(!!localStorage.getItem('myeco-biometric-credential'));
+
+  useEffect(() => {
+    isBiometricAvailable().then(setBioAvailable);
+  }, []);
+
+  const handleRegisterBiometric = async () => {
+    const success = await registerBiometric(userName || 'MyEco User');
+    if (success) {
+      setBioRegistered(true);
+      setBiometricEnabled(true);
+      addToast({
+        title: t('security.biometricRegistered'),
+        variant: 'success',
+      });
+    } else {
+      addToast({
+        title: t('security.biometricNotAvailable'),
+        variant: 'error',
+      });
+    }
+  };
+
+  const handleSavePin = async () => {
+    const errors: Record<string, string> = {};
+
+    if (pinModalMode === 'change' || pinModalMode === 'remove') {
+      if (!pinForm.currentPin) {
+        errors.currentPin = t('validation.required');
+      } else if (pinHash) {
+        const isValid = await hashPin(pinForm.currentPin).then(h => h === pinHash);
+        if (!isValid) {
+          errors.currentPin = t('security.wrongPin');
+        }
+      }
+    }
+
+    if (pinModalMode === 'set' || pinModalMode === 'change') {
+      if (!pinForm.newPin) {
+        errors.newPin = t('security.pinRequired');
+      } else if (pinForm.newPin.length < 4) {
+        errors.newPin = t('security.pinTooShort');
+      } else if (pinForm.newPin !== pinForm.confirmPin) {
+        errors.confirmPin = t('security.pinMismatch');
+      }
+    }
+
+    setPinFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    if (pinModalMode === 'remove') {
+      setPinHash('');
+      setLockEnabled(false);
+      setBiometricEnabled(false);
+      removeBiometricCredential();
+      setBioRegistered(false);
+    } else if (pinModalMode === 'set' || pinModalMode === 'change') {
+      const newHash = await hashPin(pinForm.newPin);
+      setPinHash(newHash);
+      setLockEnabled(true);
+    }
+
+    setPinModalMode(null);
+    setPinForm({ currentPin: '', newPin: '', confirmPin: '' });
+    setPinFormErrors({});
+  };
 
   // --- Exchange Rate state ---
   const [rateModalOpen, setRateModalOpen] = useState(false);
@@ -468,6 +541,25 @@ export function Settings() {
   return (
     <div className="space-y-6 max-w-2xl">
       <h1 className="text-2xl font-bold text-gray-900">{t('settings.title')}</h1>
+
+      {/* Profile */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <User className="w-5 h-5 text-primary" />
+            <h2 className="text-base font-semibold text-gray-900">{t('profile.title')}</h2>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Input
+            label={t('profile.userName')}
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+            placeholder={t('profile.userNamePlaceholder')}
+          />
+          <p className="text-xs text-gray-400 mt-2">{t('profile.userNameDesc')}</p>
+        </CardContent>
+      </Card>
 
       {/* Language */}
       <Card>
@@ -832,6 +924,109 @@ export function Settings() {
         </CardContent>
       </Card>
 
+      {/* Security */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Lock className="w-5 h-5 text-primary" />
+            <h2 className="text-base font-semibold text-gray-900">{t('security.title')}</h2>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* PIN Lock */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{t('security.pinLock')}</p>
+                <p className="text-xs text-gray-400">{t('security.pinLockDesc')}</p>
+              </div>
+              {pinHash ? (
+                <div className="flex items-center gap-2">
+                  <Tooltip content={t('security.changePin')}>
+                    <Button size="sm" variant="outline" onClick={() => setPinModalMode('change')}>
+                      <KeyRound className="w-3.5 h-3.5" />
+                      {t('security.changePin')}
+                    </Button>
+                  </Tooltip>
+                  <Tooltip content={t('security.removePin')}>
+                    <Button size="sm" variant="outline" className="text-danger border-danger/30 hover:bg-danger-light" onClick={() => setPinModalMode('remove')}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </Tooltip>
+                </div>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => setPinModalMode('set')}>
+                  <KeyRound className="w-3.5 h-3.5" />
+                  {t('security.setPin')}
+                </Button>
+              )}
+            </div>
+            {pinHash && (
+              <label className="flex items-center gap-3 cursor-pointer mt-2">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={lockEnabled}
+                    onChange={(e) => setLockEnabled(e.target.checked)}
+                  />
+                  <div className="w-10 h-6 rounded-full bg-gray-200 peer-checked:bg-primary transition-colors duration-200" />
+                  <div className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm peer-checked:translate-x-4 transition-transform duration-200" />
+                </div>
+                <span className="text-sm text-gray-700 font-medium">{t('security.pinLock')}</span>
+              </label>
+            )}
+          </div>
+
+          {/* Biometric */}
+          <div className="pt-3 border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{t('security.biometric')}</p>
+                <p className="text-xs text-gray-400">{t('security.biometricDesc')}</p>
+              </div>
+              {bioAvailable ? (
+                <div className="flex items-center gap-2">
+                  {bioRegistered ? (
+                    <>
+                      <Badge variant="info" className="text-xs">
+                        <Fingerprint className="w-3 h-3 mr-1" />
+                        {t('security.biometricRegistered')}
+                      </Badge>
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={biometricEnabled}
+                            onChange={(e) => {
+                              setBiometricEnabled(e.target.checked);
+                              if (!e.target.checked) {
+                                removeBiometricCredential();
+                                setBioRegistered(false);
+                              }
+                            }}
+                          />
+                          <div className="w-10 h-6 rounded-full bg-gray-200 peer-checked:bg-primary transition-colors duration-200" />
+                          <div className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm peer-checked:translate-x-4 transition-transform duration-200" />
+                        </div>
+                      </label>
+                    </>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={handleRegisterBiometric}>
+                      <Fingerprint className="w-3.5 h-3.5" />
+                      {t('security.registerBiometric')}
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <span className="text-xs text-gray-400">{t('security.biometricNotAvailable')}</span>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Data Management */}
       <Card>
         <CardHeader>
@@ -998,6 +1193,70 @@ export function Settings() {
             error={rateFormErrors.rate}
           />
           <p className="text-xs text-gray-400">{t('settings.rateExample')}</p>
+        </div>
+      </Modal>
+
+      {/* PIN Modal */}
+      <Modal
+        isOpen={pinModalMode !== null}
+        onClose={() => { setPinModalMode(null); setPinForm({ currentPin: '', newPin: '', confirmPin: '' }); setPinFormErrors({}); }}
+        title={pinModalMode === 'set' ? t('security.setPin') : pinModalMode === 'change' ? t('security.changePin') : t('security.removePin')}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => { setPinModalMode(null); setPinForm({ currentPin: '', newPin: '', confirmPin: '' }); setPinFormErrors({}); }}>{t('common.cancel')}</Button>
+            <Button onClick={handleSavePin}>{pinModalMode === 'remove' ? t('common.confirm') : t('common.save')}</Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {(pinModalMode === 'change' || pinModalMode === 'remove') && (
+            <Input
+              label={t('security.enterCurrentPin')}
+              type="password"
+              inputMode="numeric"
+              maxLength={6}
+              value={pinForm.currentPin}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                setPinForm(prev => ({ ...prev, currentPin: val }));
+                setPinFormErrors({});
+              }}
+              error={pinFormErrors.currentPin}
+            />
+          )}
+          {pinModalMode !== 'remove' && (
+            <>
+              <Input
+                label={t('security.enterNewPin')}
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                value={pinForm.newPin}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  setPinForm(prev => ({ ...prev, newPin: val }));
+                  setPinFormErrors({});
+                }}
+                error={pinFormErrors.newPin}
+              />
+              <Input
+                label={t('security.confirmPin')}
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                value={pinForm.confirmPin}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  setPinForm(prev => ({ ...prev, confirmPin: val }));
+                  setPinFormErrors({});
+                }}
+                error={pinFormErrors.confirmPin}
+              />
+            </>
+          )}
+          {pinModalMode === 'remove' && (
+            <p className="text-sm text-gray-500">{t('security.pinLockDesc')}</p>
+          )}
         </div>
       </Modal>
 

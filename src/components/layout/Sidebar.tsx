@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useAppStore } from '@/stores/useAppStore';
 import { LayoutDashboard, Wallet, ArrowLeftRight, PiggyBank, Target, HandshakeIcon, BarChart3, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -16,6 +17,7 @@ const navItems = [
 
 export function Sidebar() {
   const { t } = useTranslation();
+  const { userName } = useAppStore();
 
   return (
     <aside className="layout-sidebar bg-white border-r border-gray-100">
@@ -24,9 +26,13 @@ export function Sidebar() {
           <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center">
             <Wallet className="w-5 h-5 text-white" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h1 className="text-lg font-bold text-gray-900 tracking-tight">MyEco</h1>
-            <p className="text-xs text-gray-500">{t('app.tagline')}</p>
+            {userName ? (
+              <p className="text-xs text-gray-500 truncate">{userName}</p>
+            ) : (
+              <p className="text-xs text-gray-500">{t('app.tagline')}</p>
+            )}
           </div>
         </div>
       </div>

@@ -326,6 +326,43 @@
     "goalAchieved": "Meta alcanzada",
     "goalHalfway": "¡Vas por buen camino!"
   },
+  "profile": {
+    "title": "Perfil",
+    "userName": "Tu Nombre",
+    "userNamePlaceholder": "Ingresa tu nombre",
+    "userNameDesc": "Este nombre se mostrará en la barra lateral"
+  },
+  "security": {
+    "title": "Seguridad",
+    "pinLock": "Bloqueo con PIN",
+    "pinLockDesc": "Protege tus datos con un código PIN numérico",
+    "setPin": "Establecer PIN",
+    "changePin": "Cambiar PIN",
+    "removePin": "Eliminar PIN",
+    "enterPin": "Ingresar PIN",
+    "enterCurrentPin": "Ingresa el PIN actual",
+    "enterNewPin": "Ingresa el nuevo PIN",
+    "confirmPin": "Confirmar PIN",
+    "pinMismatch": "Los PIN no coinciden",
+    "pinTooShort": "El PIN debe tener al menos 4 dígitos",
+    "pinRequired": "El PIN es obligatorio",
+    "wrongPin": "PIN incorrecto",
+    "biometric": "Desbloqueo Biométrico",
+    "biometricDesc": "Usa tu huella o rostro para desbloquear la app",
+    "registerBiometric": "Registrar huella",
+    "biometricRegistered": "Biometría registrada",
+    "biometricNotAvailable": "Biometría no disponible en este dispositivo",
+    "unlockWithBiometric": "Desbloquear con huella",
+    "unlockWithPin": "Ingresar PIN"
+  },
+  "lockScreen": {
+    "title": "MyEco",
+    "subtitle": "Ingresa tu PIN para desbloquear",
+    "useBiometric": "Usar huella",
+    "usePin": "Usar PIN",
+    "wrongPin": "PIN incorrecto",
+    "locked": "App bloqueada"
+  },
   "validation": {
     "required": "Este campo es obligatorio",
     "invalidAmount": "Ingresa un monto válido",

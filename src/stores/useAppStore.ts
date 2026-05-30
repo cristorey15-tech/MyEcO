@@ -29,6 +29,17 @@ interface AppState {
   transactionFilters: TransactionFilterState;
   setTransactionFilters: (filters: Partial<TransactionFilterState>) => void;
   resetTransactionFilters: () => void;
+  // Profile & Security
+  userName: string;
+  setUserName: (name: string) => void;
+  pinHash: string;
+  setPinHash: (hash: string) => void;
+  lockEnabled: boolean;
+  setLockEnabled: (enabled: boolean) => void;
+  biometricEnabled: boolean;
+  setBiometricEnabled: (enabled: boolean) => void;
+  isLocked: boolean;
+  setIsLocked: (locked: boolean) => void;
 }
 
 const defaultTransactionFilters: TransactionFilterState = {
@@ -50,20 +61,35 @@ export const useAppStore = create<AppState>()(
       tourCompleted: false,
       setupCompleted: false,
       transactionFilters: { ...defaultTransactionFilters },
+      userName: '',
+      pinHash: '',
+      lockEnabled: false,
+      biometricEnabled: false,
+      isLocked: false,
 
       setDefaultCurrency: (currency) => set({ defaultCurrency: currency }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
       setHydrated: () => set({ isHydrated: true }),
       completeTour: () => set({ tourCompleted: true }),
       resetTour: () => set({ tourCompleted: false }),
-  completeSetup: () => set({ setupCompleted: true }),
-  resetSetup: () => set({ setupCompleted: false }),
-  resetAllState: () => set({
-    defaultCurrency: 'USD',
-    tourCompleted: false,
-    setupCompleted: false,
-    transactionFilters: { ...defaultTransactionFilters },
-  }),
+      completeSetup: () => set({ setupCompleted: true }),
+      resetSetup: () => set({ setupCompleted: false }),
+      resetAllState: () => set({
+        defaultCurrency: 'USD',
+        tourCompleted: false,
+        setupCompleted: false,
+        transactionFilters: { ...defaultTransactionFilters },
+        userName: '',
+        pinHash: '',
+        lockEnabled: false,
+        biometricEnabled: false,
+        isLocked: false,
+      }),
+      setUserName: (name) => set({ userName: name }),
+      setPinHash: (hash) => set({ pinHash: hash }),
+      setLockEnabled: (enabled) => set({ lockEnabled: enabled }),
+      setBiometricEnabled: (enabled) => set({ biometricEnabled: enabled }),
+      setIsLocked: (locked) => set({ isLocked: locked }),
       setTransactionFilters: (filters) => set((state) => ({
         transactionFilters: { ...state.transactionFilters, ...filters },
       })),

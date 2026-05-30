@@ -272,6 +272,9 @@ export function Accounts() {
                         <p className="text-sm font-semibold text-gray-900">{acc.name}</p>
                         <p className="text-xs text-gray-400">
                           {t(`accounts.${acc.type}`)}
+                          {acc.currency !== defaultCurrency && (
+                            <Badge variant="info" className="ml-1.5 text-[10px] px-1.5">{acc.currency}</Badge>
+                          )}
                           {acc.isArchived && ` · ${t('accounts.archived')}`}
                         </p>
                       </div>
@@ -307,6 +310,9 @@ export function Accounts() {
                       balance >= 0 ? 'text-gray-900' : 'text-danger'
                     )}>
                       {formatCurrency(balance, acc.currency)}
+                    </p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      ≈ {formatCurrency(convertedBalances[acc.id!] || 0, defaultCurrency)}
                     </p>
                   </div>
                 </CardContent>

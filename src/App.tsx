@@ -5,6 +5,7 @@ import { AnimatePresence } from 'framer-motion';
 import { Layout } from '@/components/layout/Layout';
 import { PageTransition } from '@/components/ui/page-transition';
 import { Tour } from '@/components/onboarding/Tour';
+import { LockScreen } from '@/components/auth/LockScreen';
 import { seedCategories } from '@/lib/db';
 import { useAppStore } from '@/stores/useAppStore';
 import { runAllPeriodicChecks } from '@/lib/notificationService';
@@ -49,9 +50,9 @@ function AnimatedRoutes() {
   }
 
   return (
-    <>
-      {/* Tour persists across route changes — outside AnimatePresence so it doesn't remount */}
-      <Tour />
+      <LockScreen>
+        {/* Tour persists across route changes — outside AnimatePresence so it doesn't remount */}
+        <Tour />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           {/* Welcome page - outside Layout */}
@@ -72,7 +73,7 @@ function AnimatedRoutes() {
           </Route>
         </Routes>
       </AnimatePresence>
-    </>
+      </LockScreen>
   );
 }
 
