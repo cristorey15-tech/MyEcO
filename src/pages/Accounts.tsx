@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, getAccountBalance } from '@/lib/db';
 import { formatCurrency, batchConvertAmounts, cn } from '@/lib/utils';
@@ -37,6 +38,7 @@ export function Accounts() {
   const { t } = useTranslation();
   const { defaultCurrency } = useAppStore();
   const { confirm, ConfirmDialog } = useConfirm();
+  const navigate = useNavigate();
   const accounts = useLiveQuery(() => db.accounts.toArray());
   const allTransactions = useLiveQuery(() => db.transactions.toArray());
   const [balances, setBalances] = useState<Record<number, number>>({});
@@ -55,6 +57,21 @@ export function Accounts() {
     color: '#2563eb',
     icon: 'credit-card',
   });
+
+  // Auto-open edit modal when navigating from account detail with ?edit=id
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (editId && accounts) {
+      const accountToEdit = accounts.find(a => a.id === Number(editId));
+      if (accountToEdit) {
+        openEditModal(accountToEdit);
+        // Clean the param from URL without full reload
+        window.history.replaceState({}, '', '/accounts');
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, accounts]);
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
@@ -233,59 +250,68 @@ export function Accounts() {
           const IconComponent = accountIcons[acc.type] || Wallet;
           const balance = balances[acc.id!] || 0;
           return (
-            <Card key={acc.id} hover className={cn(acc.isArchived && 'opacity-60')}>
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-11 h-11 rounded-xl flex items-center justify-center"
-                      style={{ backgroundColor: acc.color || accountColors[acc.type] || '#2563eb' }}
-                    >
-                      <IconComponent className="w-5 h-5 text-white" />
+            <div
+              key={acc.id}
+              onClick={() => navigate(`/accounts/${acc.id}`)}
+              className="cursor-pointer"
+              role="link"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/accounts/${acc.id}`); } }}
+            >
+              <Card hover className={cn(acc.isArchived && 'opacity-60')}>
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-11 h-11 rounded-xl flex items-center justify-center"
+                        style={{ backgroundColor: acc.color || accountColors[acc.type] || '#2563eb' }}
+                      >
+                        <IconComponent className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{acc.name}</p>
+                        <p className="text-xs text-gray-400">
+                          {t(`accounts.${acc.type}`)}
+                          {acc.isArchived && ` · ${t('accounts.archived')}`}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{acc.name}</p>
-                      <p className="text-xs text-gray-400">
-                        {t(`accounts.${acc.type}`)}
-                        {acc.isArchived && ` · ${t('accounts.archived')}`}
-                      </p>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openEditModal(acc); }}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                        aria-label={t('common.edit')}
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleArchive(acc); }}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                        aria-label={acc.isArchived ? t('accounts.title') : t('accounts.archived')}
+                      >
+                        {acc.isArchived ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(acc.id!); }}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-red-50 transition-colors"
+                        aria-label={t('common.delete')}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => openEditModal(acc)}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                      aria-label={t('common.edit')}
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => toggleArchive(acc)}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                      aria-label={acc.isArchived ? t('accounts.title') : t('accounts.archived')}
-                    >
-                      {acc.isArchived ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                    </button>
-                    <button
-                      onClick={() => handleDelete(acc.id!)}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-red-50 transition-colors"
-                      aria-label={t('common.delete')}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                  <div className="mt-4 pt-3 border-t border-gray-50">
+                    <p className="text-xs text-gray-400">{t('accounts.currentBalance')}</p>
+                    <p className={cn(
+                      'text-xl font-bold mt-0.5',
+                      balance >= 0 ? 'text-gray-900' : 'text-danger'
+                    )}>
+                      {formatCurrency(balance, acc.currency)}
+                    </p>
                   </div>
-                </div>
-                <div className="mt-4 pt-3 border-t border-gray-50">
-                  <p className="text-xs text-gray-400">{t('accounts.currentBalance')}</p>
-                  <p className={cn(
-                    'text-xl font-bold mt-0.5',
-                    balance >= 0 ? 'text-gray-900' : 'text-danger'
-                  )}>
-                    {formatCurrency(balance, acc.currency)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           );
         })}
       </div>

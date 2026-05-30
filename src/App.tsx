@@ -19,6 +19,7 @@ const Debts = lazy(() => import('@/pages/Debts').then(m => ({ default: m.Debts }
 const Reports = lazy(() => import('@/pages/Reports').then(m => ({ default: m.Reports })));
 const Settings = lazy(() => import('@/pages/Settings').then(m => ({ default: m.Settings })));
 const Welcome = lazy(() => import('@/pages/Welcome').then(m => ({ default: m.Welcome })));
+const AccountDetail = lazy(() => import('@/pages/AccountDetail').then(m => ({ default: m.AccountDetail })));
 const NotFound = lazy(() => import('@/pages/NotFound').then(m => ({ default: m.NotFound })));
 
 function PageLoader() {
@@ -60,6 +61,7 @@ function AnimatedRoutes() {
           <Route element={<Layout />}>
             <Route path="/" element={<PageTransition><Dashboard /></PageTransition>} />
             <Route path="/accounts" element={<PageTransition><Accounts /></PageTransition>} />
+            <Route path="/accounts/:id" element={<PageTransition><AccountDetail /></PageTransition>} />
             <Route path="/transactions" element={<PageTransition><Transactions /></PageTransition>} />
             <Route path="/budgets" element={<PageTransition><Budgets /></PageTransition>} />
             <Route path="/goals" element={<PageTransition><Goals /></PageTransition>} />
