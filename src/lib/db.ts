@@ -61,21 +61,31 @@ export async function getAccountBalance(accountId: number): Promise<number> {
     .where({ accountId })
     .toArray();
 
+  // Convert amount to account's currency
+  const convertIfNeeded = async (amount: number, from: string): Promise<number> => {
+    if (from === account.currency) return amount;
+    const { getExchangeRate } = await import('@/lib/utils');
+    const rate = await getExchangeRate(from, account.currency);
+    return rate > 0 ? amount * rate : amount;
+  };
+
   let balance = account.initialBalance;
   for (const t of txns) {
-    if (t.type === 'income') balance += t.amount;
-    else if (t.type === 'expense') balance -= t.amount;
+    const convertedAmount = await convertIfNeeded(t.amount, t.currency);
+    if (t.type === 'income') balance += convertedAmount;
+    else if (t.type === 'expense') balance -= convertedAmount;
     else if (t.type === 'transfer') {
-      if (t.accountId === accountId) balance -= t.amount;
+      if (t.accountId === accountId) balance -= convertedAmount;
     }
   }
 
-  // Add incoming transfers
+  // Add incoming transfers (convert from their currency to the account's currency)
   const incomingTxns = await db.transactions
     .where({ toAccountId: accountId })
     .toArray();
   for (const t of incomingTxns) {
-    balance += t.amount;
+    const convertedAmount = await convertIfNeeded(t.amount, t.currency);
+    balance += convertedAmount;
   }
 
   return balance;

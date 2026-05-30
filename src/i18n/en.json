@@ -74,7 +74,9 @@
     "totalBalance": "Total Balance",
     "archived": "Archived",
     "hideArchived": "Hide archived",
-    "namePlaceholder": "E.g., Checking Account"
+    "namePlaceholder": "E.g., Checking Account",
+    "currencyWarningTitle": "Currency change detected",
+    "currencyWarningDesc": "This account has transactions. The balance will be recalculated by converting past transactions to the new currency using current exchange rates. Old transactions keep their original currency in the list."
   },
   "transactions": {
     "title": "Transactions",

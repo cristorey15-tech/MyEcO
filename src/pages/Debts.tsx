@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { CardSkeleton } from '@/components/ui/skeleton';
 import { Plus, HandshakeIcon, ArrowDownRight, Calendar, Percent, Search } from 'lucide-react';
 import type { Debt } from '@/types';
+import { CURRENCIES } from '@/types';
 
 export function Debts() {
   const { t } = useTranslation();
@@ -282,6 +283,12 @@ export function Debts() {
             ]}
           />
 
+          <Select
+            label={t('common.currency')}
+            value={formData.currency}
+            onChange={(e) => { setFormData(prev => ({ ...prev, currency: e.target.value })); setFormErrors({}); }}
+            options={CURRENCIES.map(c => ({ value: c.code, label: `${c.flag} ${c.code} - ${c.symbol}` }))}
+          />
           <div className="grid grid-cols-2 gap-4">
             <Input label={t('debts.totalAmount')} type="number" step="0.01" value={formData.totalAmount} onChange={(e) => { setFormData(prev => ({ ...prev, totalAmount: parseFloat(e.target.value) || 0 })); setFormErrors({}); }} error={formErrors.totalAmount} />
             <Input label={t('debts.remainingAmount')} type="number" step="0.01" value={formData.remainingAmount} onChange={(e) => { setFormData(prev => ({ ...prev, remainingAmount: parseFloat(e.target.value) || 0 })); setFormErrors({}); }} error={formErrors.remainingAmount} />

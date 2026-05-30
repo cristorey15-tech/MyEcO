@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { CardSkeleton } from '@/components/ui/skeleton';
 import { Plus, Target, TrendingUp, Calendar, CheckCircle2, Search } from 'lucide-react';
 import type { Goal } from '@/types';
+import { CURRENCIES } from '@/types';
 
 export function Goals() {
   const { t } = useTranslation();
@@ -293,6 +294,12 @@ export function Goals() {
               error={formErrors.currentAmount}
             />
           </div>
+          <Select
+            label={t('common.currency')}
+            value={formData.currency}
+            onChange={(e) => { setFormData(prev => ({ ...prev, currency: e.target.value })); setFormErrors({}); }}
+            options={CURRENCIES.map(c => ({ value: c.code, label: `${c.flag} ${c.code} - ${c.symbol}` }))}
+          />
           <Input
             label={t('goals.targetDate')}
             type="date"

@@ -74,7 +74,9 @@
     "totalBalance": "Balance Total",
     "archived": "Archivada",
     "hideArchived": "Ocultar archivadas",
-    "namePlaceholder": "Ej: Cuenta de nómina"
+    "namePlaceholder": "Ej: Cuenta de nómina",
+    "currencyWarningTitle": "Cambio de moneda detectado",
+    "currencyWarningDesc": "Esta cuenta tiene transacciones. El saldo se recalculará convirtiendo las transacciones anteriores a la nueva moneda usando las tasas de cambio actuales. Las transacciones viejas mantienen su moneda original en el listado."
   },
   "transactions": {
     "title": "Transacciones",

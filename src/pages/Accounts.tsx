@@ -12,7 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton, CardSkeleton } from '@/components/ui/skeleton';
-import { Plus, Edit3, Trash2, Wallet, CreditCard, PiggyBank, TrendingUp, Eye, EyeOff, Search } from 'lucide-react';
+import { Plus, Edit3, Trash2, Wallet, CreditCard, PiggyBank, TrendingUp, Eye, EyeOff, Search, AlertTriangle } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
 import type { Account, AccountType } from '@/types';
 import { ACCOUNT_TYPES } from '@/types';
@@ -38,6 +38,7 @@ export function Accounts() {
   const { defaultCurrency } = useAppStore();
   const { confirm, ConfirmDialog } = useConfirm();
   const accounts = useLiveQuery(() => db.accounts.toArray());
+  const allTransactions = useLiveQuery(() => db.transactions.toArray());
   const [balances, setBalances] = useState<Record<number, number>>({});
   const [convertedBalances, setConvertedBalances] = useState<Record<number, number>>({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,6 +46,7 @@ export function Accounts() {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [originalCurrency, setOriginalCurrency] = useState<string>('');
   const [formData, setFormData] = useState({
     name: '',
     type: 'checking' as AccountType,
@@ -129,6 +131,7 @@ export function Accounts() {
   const openEditModal = (account: Account) => {
     setEditingAccount(account);
     setFormErrors({});
+    setOriginalCurrency(account.currency);
     setFormData({
       name: account.name,
       type: account.type,
@@ -340,6 +343,17 @@ export function Accounts() {
             onChange={(e) => { setFormData(prev => ({ ...prev, initialBalance: parseFloat(e.target.value) || 0 })); setFormErrors({}); }}
             error={formErrors.initialBalance}
           />
+          {/* Currency change warning */}
+          {editingAccount && formData.currency !== originalCurrency && allTransactions?.some(t => t.accountId === editingAccount.id) && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-amber-800">{t('accounts.currencyWarningTitle')}</p>
+                <p className="text-xs text-amber-700 mt-1">{t('accounts.currencyWarningDesc')}</p>
+              </div>
+            </div>
+          )}
+
           <Input
             label={t('common.currency')}
             value={formData.currency}
