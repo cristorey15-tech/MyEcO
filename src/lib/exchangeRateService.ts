@@ -75,7 +75,7 @@ export async function fetchAllRates(): Promise<FetchResult> {
 
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const promises: Promise<void>[] = [];
+  const promises: Promise<any>[] = [];
 
   // VES is only available in primary API — try fetching it directly if not in rates
   if (!rates['ves']) {

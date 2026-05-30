@@ -1092,8 +1092,8 @@ export function Settings() {
                         border: '1px solid #e5e7eb',
                         fontSize: '12px',
                       }}
-                      formatter={(value: number) => [value.toFixed(6), `${trendRate.fromCurrency} → ${trendRate.toCurrency}`]}
-                      labelFormatter={(label: string) => {
+                      formatter={(value: any) => [Number(value).toFixed(6), `${trendRate.fromCurrency} → ${trendRate.toCurrency}`] as any}
+                      labelFormatter={(label: any) => {
                         const d = new Date(label);
                         return d.toLocaleDateString();
                       }}

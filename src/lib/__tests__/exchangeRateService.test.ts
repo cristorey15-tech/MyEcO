@@ -88,7 +88,7 @@ describe('exchangeRateService', () => {
 
   beforeEach(() => {
     fetchMock = vi.fn();
-    globalThis.fetch = fetchMock;
+    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
     // Re-setup Dexie mock implementations (must return Promises for .then() chaining)
     mockLast.mockResolvedValue(null);
     mockExchangeRates.put.mockResolvedValue(undefined);
@@ -246,8 +246,7 @@ describe('exchangeRateService', () => {
     });
 
     it('fetches VES separately when primary does not include it', async () => {
-      const ratesWithoutVes = { ...BASE_RATES };
-      delete ratesWithoutVes.ves;
+      const { ves: _ves, ...ratesWithoutVes } = BASE_RATES;
       mockPrimarySuccess(ratesWithoutVes);
 
       await fetchAllRates();
