@@ -72,13 +72,28 @@ export function Accounts() {
   };
 
   useEffect(() => {
-    if (!accounts) return;
-    Promise.all(
-      accounts.map(async (acc) => {
-        const balance = await getAccountBalance(acc.id!);
-        return { id: acc.id!, balance, currency: acc.currency };
-      })
-    ).then(async (results) => {
+    if (!accounts || accounts.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      // Auto-fetch exchange rates if none exist yet
+      const count = await db.exchangeRates.count();
+      if (count === 0) {
+        const { fetchAllRates } = await import('@/lib/exchangeRateService');
+        const result = await fetchAllRates();
+        if (!result.success) {
+          console.warn('Auto-fetch rates failed in Accounts:', result.errors.join(', '));
+        }
+      }
+      if (cancelled) return;
+
+      const results = await Promise.all(
+        accounts.map(async (acc) => {
+          const balance = await getAccountBalance(acc.id!);
+          return { id: acc.id!, balance, currency: acc.currency };
+        })
+      );
+      if (cancelled) return;
+
       const newBalances: Record<number, number> = {};
       results.forEach(r => { newBalances[r.id] = r.balance; });
       setBalances(newBalances);
@@ -88,10 +103,13 @@ export function Accounts() {
         results.map(r => ({ amount: r.balance, from: r.currency })),
         defaultCurrency
       );
+      if (cancelled) return;
+
       const newConverted: Record<number, number> = {};
       results.forEach((r, i) => { newConverted[r.id] = converted[i]; });
       setConvertedBalances(newConverted);
-    });
+    })().catch(err => console.error('Error loading account balances:', err));
+    return () => { cancelled = true; };
   }, [accounts, defaultCurrency]);
 
   const openNewModal = () => {
