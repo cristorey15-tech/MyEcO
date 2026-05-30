@@ -102,6 +102,13 @@ export default function App() {
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
 
+    // Run checks when coming back online
+    const onOnline = () => {
+      runAllPeriodicChecks();
+      processRecurringTransactions();
+    };
+    window.addEventListener('online', onOnline);
+
     // Initial check after 3 seconds
     setTimeout(() => {
       runAllPeriodicChecks();
@@ -112,6 +119,7 @@ export default function App() {
       clearInterval(notifInterval);
       clearInterval(recurringInterval);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('online', onOnline);
     };
   }, []);
 

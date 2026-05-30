@@ -363,6 +363,19 @@
     "wrongPin": "PIN incorrecto",
     "locked": "App bloqueada"
   },
+  "pwaInstall": {
+    "title": "Instalar MyEco",
+    "description": "Instala esta app en tu dispositivo para una mejor experiencia",
+    "install": "Instalar",
+    "installed": "¡MyEco instalado!",
+    "installedDesc": "La app se ha agregado a tu dispositivo. Puedes abrirla desde tu pantalla de inicio.",
+    "welcomeBack": "¡Bienvenido de vuelta!",
+    "welcomeBackDesc": "MyEco está listo para usar. Todos tus datos están aquí.",
+    "updateAvailable": "Nueva versión disponible",
+    "updateAvailableDesc": "Actualizando automáticamente...",
+    "offlineReady": "Listo para usar sin conexión",
+    "offlineReadyDesc": "MyEco ya funciona sin conexión a internet"
+  },
   "validation": {
     "required": "Este campo es obligatorio",
     "invalidAmount": "Ingresa un monto válido",
