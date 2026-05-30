@@ -12,7 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton, CardSkeleton } from '@/components/ui/skeleton';
-import { Plus, Edit3, Trash2, Wallet, CreditCard, PiggyBank, TrendingUp, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit3, Trash2, Wallet, CreditCard, PiggyBank, TrendingUp, Eye, EyeOff, Search } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
 import type { Account, AccountType } from '@/types';
 import { ACCOUNT_TYPES } from '@/types';
@@ -39,6 +39,7 @@ export function Accounts() {
   const { confirm, ConfirmDialog } = useConfirm();
   const accounts = useLiveQuery(() => db.accounts.toArray());
   const [balances, setBalances] = useState<Record<number, number>>({});
+  const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -182,8 +183,22 @@ export function Accounts() {
         </div>
       </div>
 
+      {/* Search */}
+      <div className="relative mb-2">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          placeholder={t('common.search')}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          aria-label={t('common.search')}
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {visibleAccounts.map((acc) => {
+        {visibleAccounts.filter(acc =>
+          acc.name.toLowerCase().includes(searchTerm.toLowerCase())
+        ).map((acc) => {
           const IconComponent = accountIcons[acc.type] || Wallet;
           const balance = balances[acc.id!] || 0;
           return (
@@ -209,18 +224,21 @@ export function Accounts() {
                     <button
                       onClick={() => openEditModal(acc)}
                       className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                      aria-label={t('common.edit')}
                     >
                       <Edit3 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => toggleArchive(acc)}
                       className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                      aria-label={acc.isArchived ? t('accounts.title') : t('accounts.archived')}
                     >
                       {acc.isArchived ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                     </button>
                     <button
                       onClick={() => handleDelete(acc.id!)}
                       className="p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-red-50 transition-colors"
+                      aria-label={t('common.delete')}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -277,7 +295,7 @@ export function Accounts() {
             label={t('accounts.accountName')}
             value={formData.name}
             onChange={(e) => { setFormData(prev => ({ ...prev, name: e.target.value })); setFormErrors({}); }}
-            placeholder="Ej: Cuenta de nómina"
+            placeholder={t('accounts.namePlaceholder')}
             error={formErrors.name}
           />
           <Select

@@ -7,6 +7,7 @@ const { mockExchangeRates, mockLast } = vi.hoisted(() => {
     mockExchangeRates: {
       put: vi.fn().mockResolvedValue(undefined),
       orderBy: vi.fn().mockReturnValue({ last: lastFn }),
+      clear: vi.fn().mockResolvedValue(undefined),
     },
     mockLast: lastFn,
   };
@@ -34,7 +35,7 @@ const BASE_RATES = {
 };
 
 const SUPPORTED_CURRENCIES = ['USD', 'VES', 'MXN', 'EUR', 'COP', 'ARS', 'CLP', 'PEN', 'BRL', 'GBP'];
-const EXPECTED_PAIRS = SUPPORTED_CURRENCIES.length * (SUPPORTED_CURRENCIES.length - 1); // 90
+const EXPECTED_PAIRS = SUPPORTED_CURRENCIES.length - 1; // 9 (USD base only, skip USD->USD)
 
 describe('exchangeRateService', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
@@ -84,9 +85,11 @@ describe('exchangeRateService', () => {
     // Re-setup Dexie mock implementations (must return Promises for .then() chaining)
     mockLast.mockResolvedValue(null);
     mockExchangeRates.put.mockResolvedValue(undefined);
+    mockExchangeRates.clear.mockResolvedValue(undefined);
     mockExchangeRates.orderBy.mockReturnValue({ last: mockLast });
     mockExchangeRates.put.mockClear();
     mockExchangeRates.orderBy.mockClear();
+    mockExchangeRates.clear.mockClear();
   });
 
   afterEach(() => {
@@ -123,31 +126,30 @@ describe('exchangeRateService', () => {
       expect(usdToMxn![0].rate).toBeCloseTo(17.5, 6);
     });
 
-    it('stores correct cross-rate (MXN -> EUR via USD)', async () => {
+    it('stores only USD base rates (not cross-rates)', async () => {
       mockPrimarySuccess();
 
       await fetchAllRates();
 
       const calls = mockExchangeRates.put.mock.calls;
-      const mxnToEur = calls.find(
-        (c: any[]) => c[0].fromCurrency === 'MXN' && c[0].toCurrency === 'EUR'
-      );
-      expect(mxnToEur).toBeDefined();
-      // MXN->EUR = EURrate / MXNrate = 0.92 / 17.5 ≈ 0.0525714
-      expect(mxnToEur![0].rate).toBeCloseTo(0.92 / 17.5, 6);
+      // All stored rates should have fromCurrency === 'USD'
+      for (const [record] of calls) {
+        expect(record.fromCurrency).toBe('USD');
+        expect(record.toCurrency).not.toBe('USD');
+      }
     });
 
-    it('stores correct inverse rate (MXN -> USD)', async () => {
+    it('stores correct USD base rate (USD -> MXN)', async () => {
       mockPrimarySuccess();
 
       await fetchAllRates();
 
       const calls = mockExchangeRates.put.mock.calls;
-      const mxnToUsd = calls.find(
-        (c: any[]) => c[0].fromCurrency === 'MXN' && c[0].toCurrency === 'USD'
+      const usdToMxn = calls.find(
+        (c: any[]) => c[0].fromCurrency === 'USD' && c[0].toCurrency === 'MXN'
       );
-      expect(mxnToUsd).toBeDefined();
-      expect(mxnToUsd![0].rate).toBeCloseTo(1 / 17.5, 6);
+      expect(usdToMxn).toBeDefined();
+      expect(usdToMxn![0].rate).toBeCloseTo(17.5, 6);
     });
 
     it('falls back to secondary API when primary fails', async () => {

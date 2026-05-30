@@ -1,4 +1,5 @@
 import { useEffect, lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { Layout } from '@/components/layout/Layout';
@@ -21,11 +22,12 @@ const Welcome = lazy(() => import('@/pages/Welcome').then(m => ({ default: m.Wel
 const NotFound = lazy(() => import('@/pages/NotFound').then(m => ({ default: m.NotFound })));
 
 function PageLoader() {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="flex flex-col items-center gap-3">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-gray-400">Cargando...</p>
+        <p className="text-sm text-gray-400">{t('common.loading')}</p>
       </div>
     </div>
   );
@@ -83,10 +85,16 @@ export default function App() {
       runAllPeriodicChecks();
     }, 10 * 60 * 1000);
 
-    // Also check on visibility change (user returns to tab)
+    // Periodic recurring transaction checks (every hour)
+    const recurringInterval = setInterval(() => {
+      processRecurringTransactions();
+    }, 60 * 60 * 1000);
+
+    // Unified visibility change handler
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         runAllPeriodicChecks();
+        processRecurringTransactions();
       }
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
@@ -97,24 +105,10 @@ export default function App() {
       processRecurringTransactions();
     }, 3000);
 
-    // Periodic recurring transaction checks (every hour)
-    const recurringInterval = setInterval(() => {
-      processRecurringTransactions();
-    }, 60 * 60 * 1000);
-
-    // Also check recurring on visibility change
-    const onVisibilityChangeRecurring = () => {
-      if (document.visibilityState === 'visible') {
-        processRecurringTransactions();
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibilityChangeRecurring);
-
     return () => {
       clearInterval(notifInterval);
       clearInterval(recurringInterval);
       document.removeEventListener('visibilitychange', onVisibilityChange);
-      document.removeEventListener('visibilitychange', onVisibilityChangeRecurring);
     };
   }, []);
 

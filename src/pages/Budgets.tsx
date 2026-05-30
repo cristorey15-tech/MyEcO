@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { Badge } from '@/components/ui/badge';
-import { Plus, PiggyBank } from 'lucide-react';
+import { Plus, PiggyBank, Search } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
 
 export function Budgets() {
@@ -31,6 +31,7 @@ export function Budgets() {
   const [formAmount, setFormAmount] = useState(0);
   const [formCategoryId, setFormCategoryId] = useState(0);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (!categories) return;
@@ -116,8 +117,9 @@ export function Budgets() {
     const spent = spentAmounts[cat.id!] || 0;
     const amount = budget?.amount || 0;
     const percentage = calculatePercentage(spent, amount);
-    return { category: cat, budget, spent, amount, percentage };
-  }).filter(b => b.amount > 0);
+    return { category: cat, budget, spent, amount, percentage };    }).filter(b => b.amount > 0).filter(b =>
+        !searchTerm || b.category.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
 
   const totalBudgeted = budgetData.reduce((sum, b) => sum + b.amount, 0);
   const totalSpent = budgetData.reduce((sum, b) => sum + b.spent, 0);
@@ -185,6 +187,18 @@ export function Budgets() {
         </Card>
       )}
 
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          placeholder={t('common.search')}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          aria-label={t('common.search')}
+        />
+      </div>
+
       {/* Budget Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {budgetData.length > 0 ? (
@@ -245,7 +259,7 @@ export function Budgets() {
                       size="sm"
                       onClick={() => openEditBudget({ categoryId: category.id!, amount })}
                     >
-                      Editar
+                      {t('common.edit')}
                     </Button>
                     <Button
                       variant="ghost"

@@ -6,22 +6,7 @@ import type { Account, Transaction, Budget, Goal, Debt, Category } from '@/types
  * Creates accounts, categories, transactions, budgets, goals, and debts.
  */
 export async function seedDemoData(): Promise<void> {
-  // Ensure default categories exist first
-  const { DEFAULT_CATEGORIES } = await import('@/types');
-  const existingCategories = await db.categories.count();
-  if (existingCategories === 0) {
-    const now = new Date();
-    const cats = DEFAULT_CATEGORIES.map(c => ({
-      name: c.nameEs,
-      type: c.type,
-      icon: c.icon,
-      color: c.color,
-      isDefault: true,
-      createdAt: now,
-    }));
-    await db.categories.bulkAdd(cats as Category[]);
-  }
-
+  // Categories are already seeded by seedCategories() in App.tsx
   const allCategories = await db.categories.toArray();
   const salaryCat = allCategories.find(c => c.name === 'Salario') || allCategories[0];
   const foodCat = allCategories.find(c => c.name === 'Alimentación') || allCategories[1];

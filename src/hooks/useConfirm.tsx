@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
@@ -12,6 +13,7 @@ interface ConfirmOptions {
 }
 
 export function useConfirm() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [options, setOptions] = useState<ConfirmOptions>({
     title: '',
@@ -46,13 +48,13 @@ export function useConfirm() {
       footer={
         <>
           <Button variant="ghost" onClick={handleCancel}>
-            {options.cancelLabel || 'Cancelar'}
+            {options.cancelLabel || t('common.cancel')}
           </Button>
           <Button
             variant={options.variant === 'danger' ? 'danger' : 'primary'}
             onClick={handleConfirm}
           >
-            {options.confirmLabel || 'Confirmar'}
+            {options.confirmLabel || t('common.confirm')}
           </Button>
         </>
       }

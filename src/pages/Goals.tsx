@@ -12,7 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { Badge } from '@/components/ui/badge';
 import { CardSkeleton } from '@/components/ui/skeleton';
-import { Plus, Target, TrendingUp, Calendar, CheckCircle2 } from 'lucide-react';
+import { Plus, Target, TrendingUp, Calendar, CheckCircle2, Search } from 'lucide-react';
 import type { Goal } from '@/types';
 
 export function Goals() {
@@ -37,6 +37,7 @@ export function Goals() {
     icon: 'target',
   });
 
+  const [searchTerm, setSearchTerm] = useState('');
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedGoalId, setSelectedGoalId] = useState<number>(0);
   const [addAmount, setAddAmount] = useState(0);
@@ -104,9 +105,9 @@ export function Goals() {
 
   const handleDelete = async (id: number) => {
     const confirmed = await confirm({
-      title: 'Eliminar meta',
-      message: '¿Estás seguro de eliminar esta meta de ahorro?',
-      confirmLabel: 'Eliminar',
+      title: t('goals.deleteConfirm'),
+      message: t('goals.deleteWarning'),
+      confirmLabel: t('common.delete'),
       variant: 'danger',
     });
     if (confirmed) {
@@ -141,13 +142,25 @@ export function Goals() {
         </Button>
       </div>
 
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          placeholder={t('common.search')}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          aria-label={t('common.search')}
+        />
+      </div>
+
       {!goals ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2].map(i => <CardSkeleton key={i} />)}
         </div>
       ) : goals.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {goals.map((goal) => {
+          {goals.filter(g => !searchTerm || g.name.toLowerCase().includes(searchTerm.toLowerCase())).map((goal) => {
             const percentage = calculatePercentage(goal.currentAmount, goal.targetAmount);
             const isAchieved = goal.currentAmount >= goal.targetAmount;
             const remaining = goal.targetAmount - goal.currentAmount;
@@ -218,7 +231,7 @@ export function Goals() {
                       <TrendingUp className="w-4 h-4" />
                       {t('goals.addMoney')}
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-danger hover:text-danger" onClick={() => handleDelete(goal.id!)}>
+                    <Button variant="ghost" size="sm" className="text-danger hover:text-danger" onClick={() => handleDelete(goal.id!)} aria-label={t('common.delete')}>
                       {t('common.delete')}
                     </Button>
                   </div>

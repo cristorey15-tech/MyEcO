@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, getAccountBalance } from '@/lib/db';
-import { formatCurrency, formatDate, convertAmount, cn } from '@/lib/utils';
+import { formatCurrency, formatDate, convertAmount, batchConvertAmounts, cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/useAppStore';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,42 +35,43 @@ export function Dashboard() {
 
   const categories = useLiveQuery(() => db.categories.toArray());
 
-  const [balances, setBalances] = useState<Record<number, number>>({});
-  // Converted balances (to default currency)
-  const [convertedBalances, setConvertedBalances] = useState<Record<number, number>>({});
-
+  // Batch-convert all accounts at once
   useEffect(() => {
     if (!accounts) return;
     Promise.all(
       accounts.map(async (acc) => {
         const balance = await getAccountBalance(acc.id!);
-        const converted = await convertAmount(balance, acc.currency, defaultCurrency);
-        return { id: acc.id!, balance, converted };
+        return { id: acc.id!, balance, currency: acc.currency };
       })
-    ).then(results => {
+    ).then(async (results) => {
       const newBalances: Record<number, number> = {};
-      const newConverted: Record<number, number> = {};
-      results.forEach(r => { newBalances[r.id] = r.balance; newConverted[r.id] = r.converted; });
+      results.forEach(r => { newBalances[r.id] = r.balance; });
       setBalances(newBalances);
+
+      // Batch-convert all balances
+      const converted = await batchConvertAmounts(
+        results.map(r => ({ amount: r.balance, from: r.currency })),
+        defaultCurrency
+      );
+      const newConverted: Record<number, number> = {};
+      results.forEach((r, i) => { newConverted[r.id] = converted[i]; });
       setConvertedBalances(newConverted);
     });
   }, [accounts, defaultCurrency]);
 
-  // Calculate monthly summary from ALL current month transactions
+  // Batch-convert monthly transactions at once
   const [monthlySummary, setMonthlySummary] = useState({ income: 0, expense: 0 });
   useEffect(() => {
     if (!monthlyTransactions) return;
-    let incomeSum = 0;
-    let expenseSum = 0;
-    Promise.all(
-      (monthlyTransactions || []).map(async (t) => {
-        const converted = await convertAmount(t.amount, t.currency, defaultCurrency);
-        return { ...t, convertedAmount: converted };
-      })
-    ).then(results => {
-      results.forEach(t => {
-        if (t.type === 'income') incomeSum += t.convertedAmount;
-        else if (t.type === 'expense') expenseSum += t.convertedAmount;
+    batchConvertAmounts(
+      monthlyTransactions.map(t => ({ amount: t.amount, from: t.currency })),
+      defaultCurrency
+    ).then(converted => {
+      let incomeSum = 0;
+      let expenseSum = 0;
+      monthlyTransactions.forEach((t, i) => {
+        if (t.type === 'income') incomeSum += converted[i];
+        else if (t.type === 'expense') expenseSum += converted[i];
       });
       setMonthlySummary({ income: incomeSum, expense: expenseSum });
     });
@@ -260,7 +261,7 @@ export function Dashboard() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">{acc.name}</p>
-                      <p className="text-xs text-gray-400 capitalize">{acc.type.replace('_', ' ')}</p>
+                      <p className="text-xs text-gray-400">{t(`accounts.${acc.type}`)}</p>
                     </div>
                   </div>
                   <p className="text-sm font-semibold text-gray-900">

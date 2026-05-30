@@ -12,7 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { TableRowSkeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, ArrowUpRight, ArrowDownRight, ArrowLeftRight, Search, Filter, X, ChevronLeft, ChevronRight, Repeat } from 'lucide-react';
+import { Plus, ArrowUpRight, ArrowDownRight, ArrowLeftRight, Search, Filter, X, ChevronLeft, ChevronRight, Repeat, ArrowUpDown } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
 import type { Transaction, TransactionType, RecurringInterval } from '@/types';
 import type { TransactionFilterState } from '@/stores/useAppStore';
@@ -49,6 +49,8 @@ export function Transactions() {
     db.transactions.orderBy('date').reverse().toArray()
   );
 
+  const [sortBy, setSortBy] = useState<'date' | 'amount' | 'description'>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
   const {
@@ -128,7 +130,7 @@ export function Transactions() {
         errors.toAccountId = t('validation.selectAccount');
       }
       if (formData.toAccountId === formData.accountId) {
-        errors.toAccountId = 'Las cuentas deben ser diferentes';
+        errors.toAccountId = t('validation.accountsMustDiffer');
       }
     } else if (!formData.categoryId) {
       errors.categoryId = t('validation.selectCategory');
@@ -137,7 +139,7 @@ export function Transactions() {
       errors.description = t('validation.maxLength', { max: 100 });
     }
     if (formData.isRecurring && !formData.recurringInterval) {
-      errors.description = 'Debes seleccionar un intervalo de recurrencia';
+      errors.description = t('validation.selectRecurringInterval');
     }
 
     setFormErrors(errors);
@@ -168,9 +170,9 @@ export function Transactions() {
 
   const handleDelete = async (id: number) => {
     const confirmed = await confirm({
-      title: 'Eliminar transacción',
-      message: '¿Estás seguro de eliminar esta transacción? Esta acción no se puede deshacer.',
-      confirmLabel: 'Eliminar',
+      title: t('transactions.deleteConfirm'),
+      message: t('transactions.deleteWarning'),
+      confirmLabel: t('common.delete'),
       variant: 'danger',
     });
     if (confirmed) {
@@ -192,6 +194,12 @@ export function Transactions() {
     filterRecurring,
     getAccountName,
     getCategoryName,
+  }).sort((a, b) => {
+    let cmp = 0;
+    if (sortBy === 'date') cmp = new Date(a.date).getTime() - new Date(b.date).getTime();
+    else if (sortBy === 'amount') cmp = a.amount - b.amount;
+    else if (sortBy === 'description') cmp = (a.description || '').localeCompare(b.description || '');
+    return sortDir === 'desc' ? -cmp : cmp;
   });
 
   const { totalPages, safePage, pageItems: paginatedTransactions, visiblePages } = paginate(filteredTransactions, currentPage, PAGE_SIZE);
@@ -218,7 +226,7 @@ export function Transactions() {
         <h1 className="text-2xl font-bold text-gray-900">{t('transactions.title')}</h1>
         <div className="flex items-center gap-2">
           <Tooltip content={t('common.filter')}>
-            <Button variant="ghost" size="sm" onClick={() => setTransactionFilters({ showFilters: !showFilters })}>
+            <Button variant="ghost" size="sm" onClick={() => setTransactionFilters({ showFilters: !showFilters })} aria-label={t('common.filter')}>
               <Filter className="w-4 h-4" />
             </Button>
           </Tooltip>
@@ -315,6 +323,58 @@ export function Transactions() {
           </div>
         )}
 
+        {/* Sort Controls */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (sortBy !== 'date') { setSortBy('date'); setSortDir('desc'); }
+              else setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+            }}
+            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              sortBy === 'date' ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+            }`}
+            aria-label={`${t('transactions.sortBy')} ${t('common.date')}`}
+          >
+            <ArrowUpDown className="w-3 h-3" />
+            {t('common.date')}
+            {sortBy === 'date' && (
+              <span className="text-[10px]">{sortDir === 'desc' ? '↓' : '↑'}</span>
+            )}
+          </button>
+          <button
+            onClick={() => {
+              if (sortBy !== 'amount') { setSortBy('amount'); setSortDir('desc'); }
+              else setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+            }}
+            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              sortBy === 'amount' ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+            }`}
+            aria-label={`${t('transactions.sortBy')} ${t('common.amount')}`}
+          >
+            <ArrowUpDown className="w-3 h-3" />
+            {t('common.amount')}
+            {sortBy === 'amount' && (
+              <span className="text-[10px]">{sortDir === 'desc' ? '↓' : '↑'}</span>
+            )}
+          </button>
+          <button
+            onClick={() => {
+              if (sortBy !== 'description') { setSortBy('description'); setSortDir('desc'); }
+              else setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+            }}
+            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              sortBy === 'description' ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+            }`}
+            aria-label={`${t('transactions.sortBy')} ${t('common.description')}`}
+          >
+            <ArrowUpDown className="w-3 h-3" />
+            {t('common.description')}
+            {sortBy === 'description' && (
+              <span className="text-[10px]">{sortDir === 'desc' ? '↓' : '↑'}</span>
+            )}
+          </button>
+        </div>
+
         <AnimatePresence>
           {hasActiveFilters && (
             <motion.div
@@ -406,6 +466,7 @@ export function Transactions() {
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDelete(txn.id!); }}
                         className="p-1 rounded text-gray-300 hover:text-danger hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                        aria-label={t('common.delete')}
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -567,7 +628,7 @@ export function Transactions() {
             label={t('common.description')}
             value={formData.description}
             onChange={(e) => { setFormData(prev => ({ ...prev, description: e.target.value })); setFormErrors({}); }}
-            placeholder="Ej: Compra del supermercado"
+            placeholder={t('transactions.descriptionPlaceholder')}
             error={formErrors.description}
           />
 
@@ -575,7 +636,7 @@ export function Transactions() {
             label={t('common.note')}
             value={formData.notes}
             onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-            placeholder="Notas adicionales..."
+            placeholder={t('transactions.notesPlaceholder')}
           />
 
           {/* Recurring toggle */}
@@ -612,7 +673,7 @@ export function Transactions() {
                   placeholder={t('common.select')}
                 />
                 <p className="text-xs text-gray-400 mt-1.5">
-                  Se creará una copia automáticamente según el intervalo seleccionado.
+                  {t('transactions.recurringInfo')}
                 </p>
               </div>
             )}

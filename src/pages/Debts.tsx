@@ -12,7 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { Badge } from '@/components/ui/badge';
 import { CardSkeleton } from '@/components/ui/skeleton';
-import { Plus, HandshakeIcon, ArrowDownRight, Calendar, Percent } from 'lucide-react';
+import { Plus, HandshakeIcon, ArrowDownRight, Calendar, Percent, Search } from 'lucide-react';
 import type { Debt } from '@/types';
 
 export function Debts() {
@@ -39,6 +39,7 @@ export function Debts() {
     notes: '',
   });
 
+  const [searchTerm, setSearchTerm] = useState('');
   const [payModalOpen, setPayModalOpen] = useState(false);
   const [payDebtId, setPayDebtId] = useState<number>(0);
   const [paymentAmount, setPaymentAmount] = useState(0);
@@ -115,9 +116,9 @@ export function Debts() {
 
   const handleDelete = async (id: number) => {
     const confirmed = await confirm({
-      title: 'Eliminar deuda',
-      message: '¿Estás seguro de eliminar esta deuda?',
-      confirmLabel: 'Eliminar',
+      title: t('debts.deleteConfirm'),
+      message: t('debts.deleteWarning'),
+      confirmLabel: t('common.delete'),
       variant: 'danger',
     });
     if (confirmed) {
@@ -146,8 +147,12 @@ export function Debts() {
     setPayModalOpen(false);
   };
 
-  const owedDebts = debts?.filter(d => d.type === 'owed') || [];
-  const lentDebts = debts?.filter(d => d.type === 'lent') || [];
+  const filteredDebts = debts?.filter(d =>
+    !searchTerm || d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (d.creditorName && d.creditorName.toLowerCase().includes(searchTerm.toLowerCase()))
+  ) || [];
+  const owedDebts = filteredDebts.filter(d => d.type === 'owed');
+  const lentDebts = filteredDebts.filter(d => d.type === 'lent');
   const totalOwed = owedDebts.reduce((sum, d) => sum + d.remainingAmount, 0);
   const totalLent = lentDebts.reduce((sum, d) => sum + d.remainingAmount, 0);
 
@@ -177,6 +182,18 @@ export function Debts() {
             <p className="text-xs text-gray-400 mt-0.5">{lentDebts.length} personas</p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          placeholder={t('common.search')}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          aria-label={t('common.search')}
+        />
       </div>
 
       {/* Debt list */}
@@ -276,7 +293,7 @@ export function Debts() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Cuotas" type="number" value={formData.installments} onChange={(e) => setFormData(prev => ({ ...prev, installments: parseInt(e.target.value) || 0 }))} />
+            <Input label={t('debts.installments')} type="number" value={formData.installments} onChange={(e) => setFormData(prev => ({ ...prev, installments: parseInt(e.target.value) || 0 }))} />
             <Input label={t('debts.paidInstallments')} type="number" value={formData.paidInstallments} onChange={(e) => setFormData(prev => ({ ...prev, paidInstallments: parseInt(e.target.value) || 0 }))} />
           </div>
 
@@ -342,7 +359,7 @@ function DebtCard({ debt, onEdit, onDelete, onPay, defaultCurrency, t }: {
               )}
             </div>
           </div>
-          {isPaid && <Badge variant="success">Pagado</Badge>}
+          {isPaid && <Badge variant="success">{t('debts.paidLabel')}</Badge>}
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
@@ -359,7 +376,7 @@ function DebtCard({ debt, onEdit, onDelete, onPay, defaultCurrency, t }: {
         {debt.installments && debt.installments > 0 && (
           <div className="mt-3">
             <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
-              <span>Cuotas: {debt.paidInstallments || 0}/{debt.installments}</span>
+              <span>{t('debts.installmentsLabel')}: {debt.paidInstallments || 0}/{debt.installments}</span>
               <span>{calculatePercentage(debt.paidInstallments || 0, debt.installments)}%</span>
             </div>
             <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -374,14 +391,14 @@ function DebtCard({ debt, onEdit, onDelete, onPay, defaultCurrency, t }: {
         {debt.interestRate && debt.interestRate > 0 && (
           <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
             <Percent className="w-3 h-3" />
-            {debt.interestRate}% interés
+            {t('debts.interestRateLabel', { rate: debt.interestRate })}
           </div>
         )}
 
         {debt.dueDate && (
           <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
             <Calendar className="w-3 h-3" />
-            Vence: {formatDate(debt.dueDate)}
+            {t('debts.dueOn')} {formatDate(debt.dueDate)}
           </div>
         )}
 
@@ -391,10 +408,10 @@ function DebtCard({ debt, onEdit, onDelete, onPay, defaultCurrency, t }: {
               {t('debts.payDebt')}
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={() => onEdit(debt)}>
+          <Button variant="ghost" size="sm" onClick={() => onEdit(debt)} aria-label={t('common.edit')}>
             {t('common.edit')}
           </Button>
-          <Button variant="ghost" size="sm" className="text-danger hover:text-danger" onClick={() => onDelete(debt.id!)}>
+          <Button variant="ghost" size="sm" className="text-danger hover:text-danger" onClick={() => onDelete(debt.id!)} aria-label={t('common.delete')}>
             {t('common.delete')}
           </Button>
         </div>

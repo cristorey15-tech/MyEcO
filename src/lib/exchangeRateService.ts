@@ -99,38 +99,24 @@ export async function fetchAllRates(): Promise<FetchResult> {
     }
   }
 
-  for (const fromCurrency of SUPPORTED_CURRENCIES) {
-    for (const toCurrency of SUPPORTED_CURRENCIES) {
-      if (fromCurrency === toCurrency) continue;
+  // Clear old rates before storing new ones
+  await db.exchangeRates.clear();
 
-      let rate: number = 0;
+  // Store only USD base rates (USD -> X)
+  for (const toCurrency of SUPPORTED_CURRENCIES) {
+    if (toCurrency === 'USD') continue;
 
-      // USD -> X: direct lookup
-      if (fromCurrency === 'USD') {
-        rate = normalizedRates[toCurrency] || 0;
-      }
-      // X -> USD: invert
-      else if (toCurrency === 'USD') {
-        const fromRate = normalizedRates[fromCurrency];
-        rate = fromRate ? 1 / fromRate : 0;
-      }
-      // X -> Y: cross via USD
-      else {
-        const fromRate = normalizedRates[fromCurrency];
-        const toRate = normalizedRates[toCurrency];
-        rate = (fromRate && toRate) ? toRate / fromRate : 0;
-      }
+    const rate = normalizedRates[toCurrency] || 0;
 
-      if (rate > 0 && isFinite(rate)) {
-        promises.push(
-          db.exchangeRates.put({
-            fromCurrency,
-            toCurrency,
-            rate: roundToDecimals(rate, 6),
-            updatedAt: now,
-          } as any).then(() => { result.ratesFetched++; })
-        );
-      }
+    if (rate > 0 && isFinite(rate)) {
+      promises.push(
+        db.exchangeRates.put({
+          fromCurrency: 'USD',
+          toCurrency,
+          rate: roundToDecimals(rate, 6),
+          updatedAt: now,
+        }).then(() => { result.ratesFetched++; })
+      );
     }
   }
 
@@ -164,12 +150,15 @@ export async function fetchSingleRate(from: string, to: string): Promise<number 
     const rate = toRate / fromRate;
 
     if (rate > 0 && isFinite(rate)) {
-      await db.exchangeRates.put({
-        fromCurrency: from,
-        toCurrency: to,
-        rate: roundToDecimals(rate, 6),
-        updatedAt: new Date(),
-      } as any);
+      // Store only USD base rate
+      if (from === 'USD') {
+        await db.exchangeRates.put({
+          fromCurrency: from,
+          toCurrency: to,
+          rate: roundToDecimals(rate, 6),
+          updatedAt: new Date(),
+        });
+      }
       return rate;
     }
 

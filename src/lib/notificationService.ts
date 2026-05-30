@@ -1,4 +1,4 @@
-import { db } from './db';
+import { db, getBudgetSpent } from './db';
 
 /**
  * Request notification permission from the browser.
@@ -135,7 +135,7 @@ export async function checkBudgetAlerts() {
   for (const budget of budgets) {
     if (budget.month !== currentMonth || budget.year !== currentYear) continue;
 
-    const spent = await getBudgetSpentSimple(budget.categoryId, budget.month, budget.year);
+    const spent = await getBudgetSpent(budget.categoryId, budget.month, budget.year);
     const percentage = budget.amount > 0 ? (spent / budget.amount) * 100 : 0;
 
     if (spent >= budget.amount && budget.amount > 0) {
@@ -201,25 +201,6 @@ export async function runAllPeriodicChecks() {
   } catch {
     // Silently fail — non-critical feature
   }
-}
-
-/**
- * Get budget spent for a category in a given month/year.
- * Lightweight version without importing the full db helper.
- */
-async function getBudgetSpentSimple(categoryId: number, month: number, year: number): Promise<number> {
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 0, 23, 59, 59);
-
-  const txns = await db.transactions
-    .where({ categoryId, type: 'expense' })
-    .filter(t => {
-      const d = new Date(t.date);
-      return d >= startDate && d <= endDate;
-    })
-    .toArray();
-
-  return txns.reduce((sum, t) => sum + t.amount, 0);
 }
 
 function formatCurrencySimple(amount: number, currency?: string): string {
