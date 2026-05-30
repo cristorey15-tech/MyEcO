@@ -1,23 +1,26 @@
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { LayoutDashboard, Wallet, ArrowLeftRight, PiggyBank, Target, HandshakeIcon, BarChart3, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const mobileNavItems = [
-  { path: '/', icon: LayoutDashboard, label: 'Inicio' },
-  { path: '/accounts', icon: Wallet, label: 'Cuentas' },
-  { path: '/transactions', icon: ArrowLeftRight, label: 'Mov.' },
-  { path: '/budgets', icon: PiggyBank, label: 'Presup.' },
-  { path: '/goals', icon: Target, label: 'Metas' },
-  { path: '/debts', icon: HandshakeIcon, label: 'Deudas' },
-  { path: '/reports', icon: BarChart3, label: 'Reportes' },
-  { path: '/settings', icon: Settings, label: 'Ajustes' },
+  { path: '/', icon: LayoutDashboard, key: 'dashboard' },
+  { path: '/accounts', icon: Wallet, key: 'accounts' },
+  { path: '/transactions', icon: ArrowLeftRight, key: 'transactions' },
+  { path: '/budgets', icon: PiggyBank, key: 'budgets' },
+  { path: '/goals', icon: Target, key: 'goals' },
+  { path: '/debts', icon: HandshakeIcon, key: 'debts' },
+  { path: '/reports', icon: BarChart3, key: 'reports' },
+  { path: '/settings', icon: Settings, key: 'settings' },
 ];
 
 export function MobileNav() {
+  const { t } = useTranslation();
+
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-40 overflow-x-auto scrollbar-hide safe-area-bottom">
       <div className="flex items-center px-1 py-1 gap-0">
-        {mobileNavItems.map(({ path, icon: Icon, label }) => (
+        {mobileNavItems.map(({ path, icon: Icon, key }) => (
           <NavLink
             key={path}
             to={path}
@@ -27,7 +30,7 @@ export function MobileNav() {
             )}
           >
             <Icon className="w-5 h-5" />
-            <span className="text-[10px] font-medium leading-tight text-center whitespace-nowrap">{label}</span>
+            <span className="text-[10px] font-medium leading-tight text-center whitespace-nowrap">{t(`nav.${key}`)}</span>
           </NavLink>
         ))}
       </div>

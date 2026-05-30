@@ -102,7 +102,7 @@ async function createRecurringInstance(template: Transaction): Promise<void> {
 /**
  * Calculate the next date for a recurring transaction based on its interval.
  */
-function calculateNextDate(originalDate: Date, interval: RecurringInterval): Date {
+export function calculateNextDate(originalDate: Date, interval: RecurringInterval): Date {
   const d = new Date(originalDate);
   const now = new Date();
 
@@ -145,12 +145,12 @@ function calculateNextDate(originalDate: Date, interval: RecurringInterval): Dat
   }
 }
 
-function daysBetween(a: Date, b: Date): number {
+export function daysBetween(a: Date, b: Date): number {
   const msPerDay = 1000 * 60 * 60 * 24;
   const diff = b.getTime() - a.getTime();
   return Math.floor(diff / msPerDay);
 }
 
-function monthsBetween(a: Date, b: Date): number {
+export function monthsBetween(a: Date, b: Date): number {
   return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
 }
