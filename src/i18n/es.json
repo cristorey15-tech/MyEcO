@@ -54,7 +54,9 @@
     "select": "Seleccionar...",
     "oneTime": "Una vez",
     "clearFilters": "Limpiar filtros",
-    "transaction": "Transacción"
+    "transaction": "Transacción",
+    "minAmount": "Monto mínimo",
+    "maxAmount": "Monto máximo"
   },
   "accounts": {
     "title": "Cuentas",

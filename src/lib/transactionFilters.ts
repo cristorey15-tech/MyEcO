@@ -6,6 +6,8 @@ export interface TransactionFilters {
   filterAccount: string;
   filterCategory: string;
   filterRecurring: string;
+  filterAmountMin: string;
+  filterAmountMax: string;
   getAccountName: (id: number) => string;
   getCategoryName: (id: number) => string;
 }
@@ -14,7 +16,7 @@ export function filterTransactions(
   transactions: Transaction[],
   filters: TransactionFilters
 ): Transaction[] {
-  const { searchTerm, filterType, filterAccount, filterCategory, filterRecurring, getAccountName, getCategoryName } = filters;
+  const { searchTerm, filterType, filterAccount, filterCategory, filterRecurring, filterAmountMin, filterAmountMax, getAccountName, getCategoryName } = filters;
 
   return transactions.filter(txn => {
     if (filterType && txn.type !== filterType) return false;
@@ -22,6 +24,8 @@ export function filterTransactions(
     if (filterCategory && txn.categoryId !== Number(filterCategory)) return false;
     if (filterRecurring === 'recurring' && !txn.isRecurring) return false;
     if (filterRecurring === 'non-recurring' && txn.isRecurring) return false;
+    if (filterAmountMin && txn.amount < Number(filterAmountMin)) return false;
+    if (filterAmountMax && txn.amount > Number(filterAmountMax)) return false;
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       const desc = (txn.description || '').toLowerCase();

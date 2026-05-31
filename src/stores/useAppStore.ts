@@ -7,6 +7,8 @@ export interface TransactionFilterState {
   filterAccount: string;
   filterCategory: string;
   filterRecurring: string;
+  filterAmountMin: string;
+  filterAmountMax: string;
   showFilters: boolean;
   currentPage: number;
 }
@@ -56,6 +58,8 @@ const defaultTransactionFilters: TransactionFilterState = {
   filterAccount: '',
   filterCategory: '',
   filterRecurring: '',
+  filterAmountMin: '',
+  filterAmountMax: '',
   showFilters: false,
   currentPage: 1,
 };

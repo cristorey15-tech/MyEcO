@@ -60,6 +60,8 @@ export function Transactions() {
     filterAccount,
     filterCategory,
     filterRecurring,
+    filterAmountMin,
+    filterAmountMax,
     showFilters,
     currentPage,
   } = transactionFilters;
@@ -191,7 +193,7 @@ export function Transactions() {
   const getCategoryName = (id: number) => categories?.find(c => c.id === id)?.name || '—';
   const getCategoryColor = (id: number) => categories?.find(c => c.id === id)?.color || '#6b7280';
 
-  const hasActiveFilters = Boolean(searchTerm || filterType || filterAccount || filterCategory || filterRecurring);
+  const hasActiveFilters = Boolean(searchTerm || filterType || filterAccount || filterCategory || filterRecurring || filterAmountMin || filterAmountMax);
 
   const filteredTransactions = filterTransactions(transactions || [], {
     searchTerm,
@@ -199,6 +201,8 @@ export function Transactions() {
     filterAccount,
     filterCategory,
     filterRecurring,
+    filterAmountMin,
+    filterAmountMax,
     getAccountName,
     getCategoryName,
   }).sort((a, b) => {
@@ -295,38 +299,67 @@ export function Transactions() {
         </div>
 
         {showFilters && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 animate-slide-up">
-            <Select
-              value={filterType}
-              onChange={handleFilterChange('filterType')}
-              options={[
-                { value: 'expense', label: t('transactions.type_expense') },
-                { value: 'income', label: t('transactions.type_income') },
-                { value: 'transfer', label: t('transactions.type_transfer') },
-              ]}
-              placeholder={t('common.type')}
-            />
-            <Select
-              value={filterAccount}
-              onChange={handleFilterChange('filterAccount')}
-              options={accounts?.map(a => ({ value: String(a.id), label: a.name })) || []}
-              placeholder={t('common.account')}
-            />
-            <Select
-              value={filterCategory}
-              onChange={handleFilterChange('filterCategory')}
-              options={categories?.map(c => ({ value: String(c.id), label: c.name })) || []}
-              placeholder={t('common.category')}
-            />
-            <Select
-              value={filterRecurring}
-              onChange={handleFilterChange('filterRecurring')}
-              options={[
-                { value: 'recurring', label: t('transactions.recurring') },
-                { value: 'non-recurring', label: t('common.oneTime') },
-              ]}
-              placeholder={t('common.all')}
-            />
+          <div className="space-y-3 animate-slide-up">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Select
+                value={filterType}
+                onChange={handleFilterChange('filterType')}
+                options={[
+                  { value: 'expense', label: t('transactions.type_expense') },
+                  { value: 'income', label: t('transactions.type_income') },
+                  { value: 'transfer', label: t('transactions.type_transfer') },
+                ]}
+                placeholder={t('common.type')}
+              />
+              <Select
+                value={filterAccount}
+                onChange={handleFilterChange('filterAccount')}
+                options={accounts?.map(a => ({ value: String(a.id), label: a.name })) || []}
+                placeholder={t('common.account')}
+              />
+              <Select
+                value={filterCategory}
+                onChange={handleFilterChange('filterCategory')}
+                options={categories?.map(c => ({ value: String(c.id), label: c.name })) || []}
+                placeholder={t('common.category')}
+              />
+              <Select
+                value={filterRecurring}
+                onChange={handleFilterChange('filterRecurring')}
+                options={[
+                  { value: 'recurring', label: t('transactions.recurring') },
+                  { value: 'non-recurring', label: t('common.oneTime') },
+                ]}
+                placeholder={t('common.all')}
+              />
+            </div>
+            {/* Amount range filter */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500">{CURRENCIES.find(c => c.code === defaultCurrency)?.symbol || defaultCurrency}</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder={t('common.minAmount')}
+                  value={filterAmountMin}
+                  onChange={(e) => setTransactionFilters({ filterAmountMin: e.target.value, currentPage: 1 })}
+                  className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/90 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500">{CURRENCIES.find(c => c.code === defaultCurrency)?.symbol || defaultCurrency}</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder={t('common.maxAmount')}
+                  value={filterAmountMax}
+                  onChange={(e) => setTransactionFilters({ filterAmountMax: e.target.value, currentPage: 1 })}
+                  className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/90 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+              </div>
+            </div>
           </div>
         )}
 
@@ -425,6 +458,22 @@ export function Transactions() {
                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
                     {filterRecurring === 'recurring' ? t('transactions.recurring') : t('common.oneTime')}
                     <button onClick={() => setTransactionFilters({ filterRecurring: '', currentPage: 1 })} className="hover:text-amber-900 dark:hover:text-amber-100 ml-0.5">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {filterAmountMin && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300">
+                    {t('common.minAmount')}: {formatCurrency(Number(filterAmountMin), defaultCurrency)}
+                    <button onClick={() => setTransactionFilters({ filterAmountMin: '', currentPage: 1 })} className="hover:text-cyan-900 dark:hover:text-cyan-100 ml-0.5">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {filterAmountMax && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300">
+                    {t('common.maxAmount')}: {formatCurrency(Number(filterAmountMax), defaultCurrency)}
+                    <button onClick={() => setTransactionFilters({ filterAmountMax: '', currentPage: 1 })} className="hover:text-cyan-900 dark:hover:text-cyan-100 ml-0.5">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
