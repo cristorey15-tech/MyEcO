@@ -42,6 +42,9 @@ const defaultFilters = {
   filterAccount: '',
   filterCategory: '',
   filterRecurring: '',
+  filterAmountMin: '',
+  filterAmountMax: '',
+  filterTag: '',
   getAccountName,
   getCategoryName,
 };
