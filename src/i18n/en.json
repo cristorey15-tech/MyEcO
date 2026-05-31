@@ -462,6 +462,17 @@
     "savingsLow": "Savings are below 20% of income",
     "ofIncome": "of income"
   },
+  "dashboardWidgets": {
+    "customize": "Customize Dashboard",
+    "netWorth": "Net Worth",
+    "incomeExpense": "Income & Expenses",
+    "spendingByCategory": "Spending by Category",
+    "accountsOverview": "Accounts",
+    "fiftyThirtyTwenty": "50/30/20 Rule",
+    "budgetOverview": "Budget Overview",
+    "recentTransactions": "Recent Transactions",
+    "goalsSummary": "Savings Goals"
+  },
   "shortcuts": {
     "title": "Keyboard Shortcuts",
     "subtitle": "Press a key to navigate quickly",

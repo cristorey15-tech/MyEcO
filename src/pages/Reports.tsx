@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { useNavigate } from 'react-router-dom';
 import { db } from '@/lib/db';
 import { formatCurrency, formatDate, getCurrentYear, batchConvertAmounts, cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/useAppStore';
@@ -71,7 +72,9 @@ function ChartLegend({ payload, onToggle, hiddenSeries }: any) {
 
 export function Reports() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { defaultCurrency } = useAppStore();
+  const setTransactionFilters = useAppStore((s) => s.setTransactionFilters);
 
   const transactions = useLiveQuery(() => db.transactions.toArray());
   const accounts = useLiveQuery(() => db.accounts.toArray());
@@ -84,9 +87,6 @@ export function Reports() {
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
   // Drill-down state
   const [drillModal, setDrillModal] = useState<{ open: boolean; title: string; transactions: Transaction[]; converted: number[] }>({ open: false, title: '', transactions: [], converted: [] });
-  // Category detail modal
-  const [catDetail, setCatDetail] = useState<{ open: boolean; categoryName: string; color: string; monthlyData: { month: string; amount: number }[] } | null>(null);
-
   const yearOptions = Array.from({ length: 5 }, (_, i) => {
     const y = getCurrentYear() - 2 + i;
     return { value: String(y), label: String(y) };
@@ -107,6 +107,7 @@ export function Reports() {
     value: number;
     color: string;
     count: number;
+    categoryId: number;
   }>>([]);
 
   // Net worth data (running balance)
@@ -115,9 +116,6 @@ export function Reports() {
     monthLabel: string;
     netWorth: number;
   }>>([]);
-
-  // Category monthly breakdown for drill-down
-  const [categoryMonthlyMap, setCategoryMonthlyMap] = useState<Map<string, { month: string; amount: number }[]>>(new Map());
 
   // Toggle series visibility
   const toggleSeries = useCallback((dataKey: string) => {
@@ -139,7 +137,6 @@ export function Reports() {
       setConvertedMonthlyData([]);
       setConvertedCategoryData([]);
       setNetWorthData([]);
-      setCategoryMonthlyMap(new Map());
       return;
     }
 
@@ -184,10 +181,7 @@ export function Reports() {
       setNetWorthData(netWorth);
 
       // --- Category breakdown ---
-      const spending: Record<number, { name: string; value: number; color: string; count: number }> = {};
-      // Category monthly data for drill-down
-      const catMonthlyMap = new Map<string, { month: string; amount: number }[]>();
-
+      const spending: Record<number, { name: string; value: number; color: string; count: number; categoryId: number }> = {};
       yearTxns.forEach((t, i) => {
         if (t.type !== 'expense') return;
         const cat = categories.find(c => c.id === t.categoryId);
@@ -197,28 +191,18 @@ export function Reports() {
             value: 0,
             color: cat?.color || '#6b7280',
             count: 0,
+            categoryId: t.categoryId,
           };
         }
         spending[t.categoryId].value += converted[i];
         spending[t.categoryId].count++;
-
-        // Build monthly data for this category
-        const d = new Date(t.date);
-        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const catKey = `${t.categoryId}`;
-        if (!catMonthlyMap.has(catKey)) catMonthlyMap.set(catKey, []);
-        const catMonthData = catMonthlyMap.get(catKey)!;
-        const existing = catMonthData.find(m => m.month === monthKey);
-        if (existing) existing.amount += converted[i];
-        else catMonthData.push({ month: monthKey, amount: converted[i] });
       });
-      setCategoryMonthlyMap(catMonthlyMap);
 
       setConvertedCategoryData(
         Object.values(spending).sort((a, b) => b.value - a.value)
       );
     });
-  }, [transactions, categories, accounts, selectedYear, defaultCurrency]);
+  }, [transactions, categories, accounts, selectedYear, defaultCurrency]  );
 
   // Totals
   const totalIncome = convertedMonthlyData.reduce((s, m) => s + m.income, 0);
@@ -243,28 +227,13 @@ export function Reports() {
     });
   }, [transactions, categories, selectedYear, defaultCurrency]);
 
-  // Click handler: drill down into a category
-  const handleCategoryClick = useCallback((data: any, idx: number) => {
-    if (!data) return;
-    const catName = data.name || data;
-    // Find monthly breakdown for this category
-    const cat = categories?.find(c => c.name === catName || c.id === Number(data.categoryId));
-    if (!cat) return;
-    const catData = categoryMonthlyMap.get(`${cat.id}`) || [];
-    setCatDetail({
-      open: true,
-      categoryName: cat.name,
-      color: cat.color,
-      monthlyData: catData.sort((a, b) => a.month.localeCompare(b.month)),
-    });
-  }, [categories, categoryMonthlyMap]);
-
-  // Click on pie slice → open category detail
-  const handlePieClick = useCallback((data: any) => {
-    if (data?.name) {
-      handleCategoryClick(data.name, 0);
+  // Click on pie slice → navigate to transactions filtered by category
+  const handleCategoryNav = useCallback((categoryId?: number) => {
+    if (categoryId) {
+      setTransactionFilters({ filterCategory: String(categoryId), currentPage: 1 });
+      navigate('/transactions');
     }
-  }, [handleCategoryClick]);
+  }, [setTransactionFilters, navigate]);
 
   // Export functions
   const exportToExcel = () => {
@@ -584,11 +553,11 @@ export function Reports() {
                         innerRadius={55} outerRadius={85}
                         paddingAngle={3}
                         dataKey="value"
-                        onClick={(_, idx) => handlePieClick(convertedCategoryData[idx])}
+                        onClick={(_, idx) => handleCategoryNav(convertedCategoryData[idx]?.categoryId)}
                         cursor="pointer"
                       >
                         {convertedCategoryData.map((entry, idx) => (
-                          <Cell key={idx} fill={entry.color} stroke="transparent" />
+                          <Cell key={idx} fill={entry.color} stroke="transparent" onClick={() => handleCategoryNav(entry.categoryId)} cursor="pointer" />
                         ))}
                       </Pie>
                       <ReTooltip content={<ChartTooltip formatter={(v: number) => formatCurrency(v, defaultCurrency)} />} />
@@ -599,7 +568,7 @@ export function Reports() {
                   {convertedCategoryData.slice(0, 10).map((item, idx) => (
                     <button
                       key={item.name}
-                      onClick={() => handlePieClick(item)}
+                      onClick={() => handleCategoryNav(item.categoryId)}
                       className="w-full flex items-center gap-2 text-xs group hover:bg-gray-50 dark:hover:bg-gray-700/30 rounded-lg px-2 py-1 transition-colors text-left"
                     >
                       <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
@@ -647,11 +616,11 @@ export function Reports() {
                       dataKey="value"
                       name={t('common.expense')}
                       radius={[0, 4, 4, 0]}
-                      onClick={(data) => handlePieClick(data)}
+                      onClick={(data: any) => handleCategoryNav(data?.categoryId)}
                       cursor="pointer"
                     >
                       {convertedCategoryData.slice(0, 10).reverse().map((entry, idx) => (
-                        <Cell key={idx} fill={entry.color} />
+                        <Cell key={idx} fill={entry.color} onClick={() => handleCategoryNav(entry.categoryId)} cursor="pointer" />
                       ))}
                     </Bar>
                   </BarChart>
@@ -751,50 +720,7 @@ export function Reports() {
         )}
       </Modal>
 
-      {/* Category Detail Modal */}
-      <Modal
-        isOpen={catDetail?.open || false}
-        onClose={() => setCatDetail(null)}
-        title={catDetail ? `● ${catDetail.categoryName}` : ''}
-        size="md"
-      >
-        {catDetail && catDetail.monthlyData.length > 0 ? (
-          <div className="space-y-4">
-            {/* Mini bar chart for monthly breakdown */}
-            <div className="h-44">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={catDetail.monthlyData.map(m => ({
-                  ...m,
-                  monthLabel: new Date(selectedYear, parseInt(m.month.split('-')[1]) - 1).toLocaleDateString(undefined, { month: 'short' }),
-                }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:opacity-20" />
-                  <XAxis dataKey="monthLabel" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => formatCurrency(v, defaultCurrency)} />
-                  <ReTooltip content={<ChartTooltip formatter={(v: number) => formatCurrency(v, defaultCurrency)} />} />
-                  <Bar dataKey="amount" name={t('common.expense')} fill={catDetail.color} radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
 
-            {/* Monthly list */}
-            <div className="space-y-1">
-              {catDetail.monthlyData
-                .sort((a, b) => a.month.localeCompare(b.month))
-                .map(m => {
-                  const monthLabel = new Date(selectedYear, parseInt(m.month.split('-')[1]) - 1).toLocaleDateString(undefined, { month: 'long' });
-                  return (
-                    <div key={m.month} className="flex items-center justify-between py-1.5 border-b border-gray-50 dark:border-gray-700/20 last:border-0">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">{monthLabel}</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatCurrency(m.amount, defaultCurrency)}</span>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-gray-400 text-center py-8">{t('common.noData')}</p>
-        )}
-      </Modal>
     </div>
   );
 }

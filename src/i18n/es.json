@@ -461,6 +461,17 @@
     "savingsLow": "El ahorro está por debajo del 20% de los ingresos",
     "ofIncome": "de ingresos"
   },
+  "dashboardWidgets": {
+    "customize": "Personalizar Dashboard",
+    "netWorth": "Patrimonio Neto",
+    "incomeExpense": "Ingresos y Gastos",
+    "spendingByCategory": "Gastos por Categoría",
+    "accountsOverview": "Cuentas",
+    "fiftyThirtyTwenty": "Regla 50/30/20",
+    "budgetOverview": "Resumen de Presupuestos",
+    "recentTransactions": "Transacciones Recientes",
+    "goalsSummary": "Metas de Ahorro"
+  },
   "shortcuts": {
     "title": "Atajos de Teclado",
     "subtitle": "Presiona una tecla para navegar rápido",
