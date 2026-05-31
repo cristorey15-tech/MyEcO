@@ -359,7 +359,7 @@ export function Dashboard() {
   }
 
   function handleCategoryClick(categoryId: number) {
-    setTransactionFilters({ filterCategory: String(categoryId), currentPage: 1 });
+    setTransactionFilters({ filterCategory: String(categoryId), currentPage: 1, showFilters: true });
     navigate('/transactions');
   }
 

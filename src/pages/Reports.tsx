@@ -230,7 +230,7 @@ export function Reports() {
   // Click on pie slice → navigate to transactions filtered by category
   const handleCategoryNav = useCallback((categoryId?: number) => {
     if (categoryId) {
-      setTransactionFilters({ filterCategory: String(categoryId), currentPage: 1 });
+      setTransactionFilters({ filterCategory: String(categoryId), currentPage: 1, showFilters: true });
       navigate('/transactions');
     }
   }, [setTransactionFilters, navigate]);

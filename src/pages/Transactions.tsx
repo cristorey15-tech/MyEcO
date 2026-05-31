@@ -382,6 +382,7 @@ export function Transactions() {
           </button>
         </div>
 
+        {/* Active filters indicator */}
         <AnimatePresence>
           {hasActiveFilters && (
             <motion.div
@@ -389,18 +390,64 @@ export function Transactions() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="flex items-center gap-2"
+              className="space-y-2"
             >
-              <span className="text-xs text-gray-400 dark:text-gray-500">
-                {filteredTransactions.length} {t('transactions.title').toLowerCase()}
-              </span>
-              <button
-                onClick={resetTransactionFilters}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-danger hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-                {t('common.clearFilters')}
-              </button>
+              {/* Filter chips */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs text-gray-400 dark:text-gray-500 mr-1">
+                  {filteredTransactions.length} {t('transactions.title').toLowerCase()}
+                </span>
+                {filterType && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                    {t('common.type')}: {t(`transactions.type_${filterType}`)}
+                    <button onClick={() => setTransactionFilters({ filterType: '', currentPage: 1 })} className="hover:text-blue-900 dark:hover:text-blue-100 ml-0.5">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {filterAccount && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                    {t('common.account')}: {getAccountName(Number(filterAccount))}
+                    <button onClick={() => setTransactionFilters({ filterAccount: '', currentPage: 1 })} className="hover:text-purple-900 dark:hover:text-purple-100 ml-0.5">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {filterCategory && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                    {t('common.category')}: {getCategoryName(Number(filterCategory))}
+                    <button onClick={() => setTransactionFilters({ filterCategory: '', currentPage: 1 })} className="hover:text-green-900 dark:hover:text-green-100 ml-0.5">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {filterRecurring && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+                    {filterRecurring === 'recurring' ? t('transactions.recurring') : t('common.oneTime')}
+                    <button onClick={() => setTransactionFilters({ filterRecurring: '', currentPage: 1 })} className="hover:text-amber-900 dark:hover:text-amber-100 ml-0.5">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {searchTerm && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                    "{searchTerm}"
+                    <button onClick={() => setTransactionFilters({ searchTerm: '', currentPage: 1 })} className="hover:text-gray-900 dark:hover:text-gray-100 ml-0.5">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {/* Clear all button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetTransactionFilters}
+                  className="text-danger hover:bg-red-50 dark:hover:bg-red-900/30 !px-2 !py-1 !text-xs"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  {t('common.clearFilters')}
+                </Button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
