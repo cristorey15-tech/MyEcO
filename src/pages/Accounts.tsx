@@ -211,9 +211,9 @@ export function Accounts() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('accounts.title')}</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {t('accounts.totalBalance')}: <span className="font-semibold text-gray-900">{formatCurrency(totalBalance, defaultCurrency)}</span>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('accounts.title')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {t('accounts.totalBalance')}: <span className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(totalBalance, defaultCurrency)}</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -235,7 +235,7 @@ export function Accounts() {
       <div className="relative mb-2">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input
-          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/90 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           placeholder={t('common.search')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -269,8 +269,8 @@ export function Accounts() {
                         <IconComponent className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">{acc.name}</p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{acc.name}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">
                           {t(`accounts.${acc.type}`)}
                           {acc.currency !== defaultCurrency && (
                             <Badge variant="info" className="ml-1.5 text-[10px] px-1.5">{acc.currency}</Badge>
@@ -289,29 +289,29 @@ export function Accounts() {
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleArchive(acc); }}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                        className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
                         aria-label={acc.isArchived ? t('accounts.title') : t('accounts.archived')}
                       >
                         {acc.isArchived ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDelete(acc.id!); }}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-red-50 transition-colors"
+                        className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-danger hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
                         aria-label={t('common.delete')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-gray-50">
-                    <p className="text-xs text-gray-400">{t('accounts.currentBalance')}</p>
+                  <div className="mt-4 pt-3 border-t border-gray-50 dark:border-gray-700/30">
+                    <p className="text-xs text-gray-400 dark:text-gray-500">{t('accounts.currentBalance')}</p>
                     <p className={cn(
                       'text-xl font-bold mt-0.5',
-                      balance >= 0 ? 'text-gray-900' : 'text-danger'
+                      balance >= 0 ? 'text-gray-900 dark:text-gray-100' : 'text-danger'
                     )}>
                       {formatCurrency(balance, acc.currency)}
                     </p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
                       ≈ {formatCurrency(convertedBalances[acc.id!] || 0, defaultCurrency)}
                     </p>
                   </div>
@@ -329,8 +329,8 @@ export function Accounts() {
       ) : visibleAccounts.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
-            <Wallet className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-            <p className="text-gray-500">{t('accounts.title')}</p>              <Tooltip content={t('accounts.newAccount')}>
+            <Wallet className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" />
+            <p className="text-gray-500 dark:text-gray-400">{t('accounts.title')}</p>              <Tooltip content={t('accounts.newAccount')}>
                 <Button variant="outline" size="sm" className="mt-3" onClick={openNewModal}>
                   <Plus className="w-4 h-4" />
                   {t('accounts.newAccount')}

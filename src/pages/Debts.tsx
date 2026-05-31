@@ -160,7 +160,7 @@ export function Debts() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">{t('debts.title')}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('debts.title')}</h1>
         <Button onClick={openNewModal}>
           <Plus className="w-4 h-4" />
           {t('debts.newDebt')}
@@ -171,25 +171,25 @@ export function Debts() {
       <div className="grid grid-cols-2 gap-4">
         <Card>
           <CardContent>
-            <p className="text-sm font-medium text-gray-500">{t('debts.iOwe')}</p>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('debts.iOwe')}</p>
             <p className="text-2xl font-bold text-danger mt-1">{formatCurrency(totalOwed, defaultCurrency)}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{owedDebts.length} deudas</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{owedDebts.length} deudas</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent>
-            <p className="text-sm font-medium text-gray-500">{t('debts.theyOweMe')}</p>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('debts.theyOweMe')}</p>
             <p className="text-2xl font-bold text-income mt-1">{formatCurrency(totalLent, defaultCurrency)}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{lentDebts.length} personas</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{lentDebts.length} personas</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
         <input
-          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/90 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           placeholder={t('common.search')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -206,7 +206,7 @@ export function Debts() {
         <div className="space-y-4">
           {owedDebts.length > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('debts.iOwe')}</h2>
+              <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">{t('debts.iOwe')}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {owedDebts.map(debt => (
                   <DebtCard
@@ -225,7 +225,7 @@ export function Debts() {
 
           {lentDebts.length > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('debts.theyOweMe')}</h2>
+              <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">{t('debts.theyOweMe')}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {lentDebts.map(debt => (
                   <DebtCard
@@ -245,8 +245,8 @@ export function Debts() {
       ) : (
         <Card>
           <CardContent className="text-center py-12">
-            <HandshakeIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-            <p className="text-gray-500">{t('debts.title')}</p>
+            <HandshakeIcon className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" />
+            <p className="text-gray-500 dark:text-gray-400">{t('debts.title')}</p>
             <Button variant="outline" size="sm" className="mt-3" onClick={openNewModal}>
               <Plus className="w-4 h-4" />
               {t('debts.newDebt')}
@@ -352,7 +352,7 @@ function DebtCard({ debt, onEdit, onDelete, onPay, defaultCurrency, t }: {
           <div className="flex items-center gap-3">
             <div className={cn(
               'w-11 h-11 rounded-xl flex items-center justify-center',
-              debt.type === 'owed' ? 'bg-red-50' : 'bg-green-50'
+              debt.type === 'owed' ? 'bg-red-50 dark:bg-red-900/30' : 'bg-green-50 dark:bg-green-900/30'
             )}>
               <ArrowDownRight className={cn(
                 'w-5 h-5',
@@ -360,9 +360,9 @@ function DebtCard({ debt, onEdit, onDelete, onPay, defaultCurrency, t }: {
               )} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">{debt.name}</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{debt.name}</p>
               {debt.creditorName && (
-                <p className="text-xs text-gray-400">{debt.creditorName}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{debt.creditorName}</p>
               )}
             </div>
           </div>
@@ -371,22 +371,22 @@ function DebtCard({ debt, onEdit, onDelete, onPay, defaultCurrency, t }: {
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div>
-            <p className="text-xs text-gray-400">{t('debts.totalAmount')}</p>
-            <p className="text-sm font-semibold text-gray-900">{formatCurrency(debt.totalAmount, debt.currency)}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{t('debts.totalAmount')}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(debt.totalAmount, debt.currency)}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-400">{t('debts.remainingAmount')}</p>
-            <p className="text-sm font-semibold text-gray-900">{formatCurrency(debt.remainingAmount, debt.currency)}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{t('debts.remainingAmount')}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(debt.remainingAmount, debt.currency)}</p>
           </div>
         </div>
 
         {debt.installments && debt.installments > 0 && (
           <div className="mt-3">
-            <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+            <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 mb-1">
               <span>{t('debts.installmentsLabel')}: {debt.paidInstallments || 0}/{debt.installments}</span>
               <span>{calculatePercentage(debt.paidInstallments || 0, debt.installments)}%</span>
             </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary rounded-full transition-all"
                 style={{ width: `${calculatePercentage(debt.paidInstallments || 0, debt.installments)}%` }}
@@ -396,20 +396,20 @@ function DebtCard({ debt, onEdit, onDelete, onPay, defaultCurrency, t }: {
         )}
 
         {debt.interestRate && debt.interestRate > 0 && (
-          <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
+          <div className="flex items-center gap-1 mt-2 text-xs text-gray-400 dark:text-gray-500">
             <Percent className="w-3 h-3" />
             {t('debts.interestRateLabel', { rate: debt.interestRate })}
           </div>
         )}
 
         {debt.dueDate && (
-          <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
+          <div className="flex items-center gap-1 mt-1 text-xs text-gray-400 dark:text-gray-500">
             <Calendar className="w-3 h-3" />
             {t('debts.dueOn')} {formatDate(debt.dueDate)}
           </div>
         )}
 
-        <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-50">
+        <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-50 dark:border-gray-700/30">
           {!isPaid && (
             <Button variant="primary" size="sm" onClick={() => onPay(debt.id!)}>
               {t('debts.payDebt')}

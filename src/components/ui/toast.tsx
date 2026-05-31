@@ -11,25 +11,25 @@ const variantConfig: Record<ToastVariant, {
   iconColor: string;
 }> = {
   success: {
-    bg: 'bg-white',
+    bg: 'bg-white dark:bg-gray-800',
     border: 'border-l-secondary',
     icon: CheckCircle,
     iconColor: 'text-secondary',
   },
   error: {
-    bg: 'bg-white',
+    bg: 'bg-white dark:bg-gray-800',
     border: 'border-l-danger',
     icon: XCircle,
     iconColor: 'text-danger',
   },
   info: {
-    bg: 'bg-white',
+    bg: 'bg-white dark:bg-gray-800',
     border: 'border-l-primary',
     icon: Info,
     iconColor: 'text-primary',
   },
   warning: {
-    bg: 'bg-white',
+    bg: 'bg-white dark:bg-gray-800',
     border: 'border-l-warning',
     icon: AlertTriangle,
     iconColor: 'text-warning',
@@ -60,7 +60,7 @@ export function ToastContainer() {
                 delay: index * 0.05,
               }}
               className={cn(
-                'pointer-events-auto rounded-xl shadow-lg border border-gray-100 border-l-4 overflow-hidden',
+                'pointer-events-auto rounded-xl shadow-lg border border-gray-100 dark:border-gray-700/50 border-l-4 overflow-hidden',
                 config.bg,
                 config.border
               )}
@@ -70,18 +70,18 @@ export function ToastContainer() {
                   <Icon className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {toast.title}
                   </p>
                   {toast.message && (
-                    <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
                       {toast.message}
                     </p>
                   )}
                 </div>
                 <button
                   onClick={() => removeToast(toast.id)}
-                  className="flex-shrink-0 p-1 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors"
+                  className="flex-shrink-0 p-1 rounded-lg text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -113,9 +113,9 @@ function ToastProgress({ duration, onComplete }: { duration: number; onComplete:
   }, []);
 
   return (
-    <div className="h-0.5 bg-gray-50">
+    <div className="h-0.5 bg-gray-50 dark:bg-gray-700">
       <motion.div
-        className="h-full bg-gray-200 rounded-full"
+        className="h-full bg-gray-200 dark:bg-gray-600 rounded-full"
         initial={{ width: '100%' }}
         animate={isActive ? { width: '0%' } : { width: '100%' }}
         transition={{

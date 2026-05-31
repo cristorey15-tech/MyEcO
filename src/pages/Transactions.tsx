@@ -230,7 +230,7 @@ export function Transactions() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">{t('transactions.title')}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('transactions.title')}</h1>
         <div className="flex items-center gap-2">
           <Tooltip content={t('common.filter')}>
             <Button variant="ghost" size="sm" onClick={() => setTransactionFilters({ showFilters: !showFilters })} aria-label={t('common.filter')}>
@@ -285,9 +285,9 @@ export function Transactions() {
       {/* Search & Filters */}
       <div className="space-y-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
           <input
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/90 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             placeholder={t('common.search')}
             value={searchTerm}
             onChange={(e) => setTransactionFilters({ searchTerm: e.target.value, currentPage: 1 })}
@@ -338,7 +338,7 @@ export function Transactions() {
               else setSortDir(d => d === 'desc' ? 'asc' : 'desc');
             }}
             className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              sortBy === 'date' ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+              sortBy === 'date' ? 'bg-primary/10 text-primary' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
             }`}
             aria-label={`${t('transactions.sortBy')} ${t('common.date')}`}
           >
@@ -354,7 +354,7 @@ export function Transactions() {
               else setSortDir(d => d === 'desc' ? 'asc' : 'desc');
             }}
             className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              sortBy === 'amount' ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+              sortBy === 'amount' ? 'bg-primary/10 text-primary' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
             }`}
             aria-label={`${t('transactions.sortBy')} ${t('common.amount')}`}
           >
@@ -370,7 +370,7 @@ export function Transactions() {
               else setSortDir(d => d === 'desc' ? 'asc' : 'desc');
             }}
             className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              sortBy === 'description' ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+              sortBy === 'description' ? 'bg-primary/10 text-primary' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
             }`}
             aria-label={`${t('transactions.sortBy')} ${t('common.description')}`}
           >
@@ -391,12 +391,12 @@ export function Transactions() {
               transition={{ duration: 0.2 }}
               className="flex items-center gap-2"
             >
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-gray-400 dark:text-gray-500">
                 {filteredTransactions.length} {t('transactions.title').toLowerCase()}
               </span>
               <button
                 onClick={resetTransactionFilters}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-danger hover:bg-red-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-danger hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
                 {t('common.clearFilters')}
@@ -415,7 +415,7 @@ export function Transactions() {
             </div>
           ) : paginatedTransactions.length > 0 ? (
             <>
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
                 <AnimatePresence mode="popLayout">
                   {paginatedTransactions.map((txn, i) => (
                     <motion.div
@@ -424,13 +424,13 @@ export function Transactions() {
                       animate={{ opacity: 1, y: 0, transition: { delay: i * 0.025, duration: 0.2, ease: 'easeOut' } }}
                       exit={{ opacity: 0, y: -10, scale: 0.97, transition: { duration: 0.15, ease: 'easeOut' } }}
                       layout
-                      className="group flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="group flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
                       onClick={() => openEditModal(txn)}
                     >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className={cn(
                         'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
-                        txn.type === 'income' ? 'bg-green-50' : txn.type === 'expense' ? 'bg-red-50' : 'bg-blue-50'
+                        txn.type === 'income' ? 'bg-green-50 dark:bg-green-900/30' : txn.type === 'expense' ? 'bg-red-50 dark:bg-red-900/30' : 'bg-blue-50 dark:bg-blue-900/30'
                       )}>
                         {txn.type === 'income' ? (
                           <ArrowUpRight className="w-5 h-5 text-income" />
@@ -441,18 +441,18 @@ export function Transactions() {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                           {txn.description || getCategoryName(txn.categoryId)}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-gray-400">{getAccountName(txn.accountId)}</span>
-                          <span className="text-gray-300">·</span>
-                          <span className="text-xs text-gray-400">{formatDate(txn.date)}</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">{getAccountName(txn.accountId)}</span>
+                          <span className="text-gray-300 dark:text-gray-600">·</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">{formatDate(txn.date)}</span>
                           <span
                             className="w-2 h-2 rounded-full inline-block"
                             style={{ backgroundColor: getCategoryColor(txn.categoryId) }}
                           />
-                          <span className="text-xs text-gray-400">{getCategoryName(txn.categoryId)}</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">{getCategoryName(txn.categoryId)}</span>
                           {txn.isRecurring && (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary-light text-primary">
                               <Repeat className="w-3 h-3" />
@@ -465,14 +465,14 @@ export function Transactions() {
                     <div className="flex items-center gap-3 flex-shrink-0 ml-4">
                       <p className={cn(
                         'text-sm font-semibold',
-                        txn.type === 'income' ? 'text-income' : txn.type === 'expense' ? 'text-expense' : 'text-gray-900'
+                        txn.type === 'income' ? 'text-income' : txn.type === 'expense' ? 'text-expense' : 'text-gray-900 dark:text-gray-100'
                       )}>
                         {txn.type === 'income' ? '+' : txn.type === 'expense' ? '−' : ''}
                         {formatCurrency(txn.amount, txn.currency)}
                       </p>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDelete(txn.id!); }}
-                        className="p-1 rounded text-gray-300 hover:text-danger hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                        className="p-1 rounded text-gray-300 dark:text-gray-600 hover:text-danger hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors opacity-0 group-hover:opacity-100"
                         aria-label={t('common.delete')}
                       >
                         <X className="w-4 h-4" />
@@ -489,9 +489,9 @@ export function Transactions() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, ease: 'easeOut', delay: 0.1 }}
-                  className="flex items-center justify-between px-5 py-3 border-t border-gray-100"
+                  className="flex items-center justify-between px-5 py-3 border-t border-gray-100 dark:border-gray-700/50"
                 >
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
                     {filteredTransactions.length} {t('transactions.title').toLowerCase()}
                   </p>
                   <motion.div
@@ -505,7 +505,7 @@ export function Transactions() {
                       transition={pagBtnTransition}
                       onClick={() => setTransactionFilters({ currentPage: safePage - 1 })}
                       disabled={safePage <= 1}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </motion.button>
@@ -519,7 +519,7 @@ export function Transactions() {
                           'w-7 h-7 rounded-lg text-xs font-medium transition-colors',
                           pageNum === safePage
                             ? 'bg-primary text-white'
-                            : 'text-gray-500 hover:bg-gray-100'
+                            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
                         )}
                       >
                         {pageNum}
@@ -530,7 +530,7 @@ export function Transactions() {
                       transition={pagBtnTransition}
                       onClick={() => setTransactionFilters({ currentPage: safePage + 1 })}
                       disabled={safePage >= totalPages}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       <ChevronRight className="w-4 h-4" />
                     </motion.button>
@@ -540,8 +540,8 @@ export function Transactions() {
             </>
           ) : (
             <div className="text-center py-12">
-              <ArrowLeftRight className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-              <p className="text-gray-500">{t('common.noData')}</p>
+              <ArrowLeftRight className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" />
+              <p className="text-gray-500 dark:text-gray-400">{t('common.noData')}</p>
               <Tooltip content={t('transactions.newTransaction')}>
                 <Button variant="outline" size="sm" className="mt-3" onClick={() => openNewModal()}>
                   <Plus className="w-4 h-4" />
@@ -633,12 +633,12 @@ export function Transactions() {
               error={formErrors.amount}
             />
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.date')}</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('common.date')}</label>
               <input
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
             </div>
           </div>
@@ -666,7 +666,7 @@ export function Transactions() {
           />
 
           {/* Recurring toggle */}
-          <div className="pt-2 border-t border-gray-100">
+          <div className="pt-2 border-t border-gray-100 dark:border-gray-700/50">
             <label className="flex items-center gap-3 cursor-pointer">
               <div className="relative">
                 <input
@@ -675,10 +675,10 @@ export function Transactions() {
                   checked={formData.isRecurring}
                   onChange={(e) => setFormData(prev => ({ ...prev, isRecurring: e.target.checked }))}
                 />
-                <div className="w-10 h-6 rounded-full bg-gray-200 peer-checked:bg-primary transition-colors duration-200" />
+                <div className="w-10 h-6 rounded-full bg-gray-200 dark:bg-gray-700 peer-checked:bg-primary transition-colors duration-200" />
                 <div className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm peer-checked:translate-x-4 transition-transform duration-200" />
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-700">
+              <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                 <Repeat className="w-4 h-4 text-primary" />
                 <span className="font-medium">{t('transactions.recurring')}</span>
               </div>
@@ -698,7 +698,7 @@ export function Transactions() {
                   ]}
                   placeholder={t('common.select')}
                 />
-                <p className="text-xs text-gray-400 mt-1.5">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
                   {t('transactions.recurringInfo')}
                 </p>
               </div>

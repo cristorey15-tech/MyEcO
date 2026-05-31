@@ -23,7 +23,8 @@ import {
   Briefcase, Laptop, Gift, PlusCircle,
   Utensils, Car, Home, Zap, Heart, Film, Book, ShoppingBag, Plane,
   MoreHorizontal, Shield, FileText, Music, Camera, Smartphone,
-  Dumbbell, Wifi, Coffee, Star, User, Lock, Fingerprint, KeyRound
+  Dumbbell, Wifi, Coffee, Star, User, Lock, Fingerprint, KeyRound,
+  Sun, Moon
 } from 'lucide-react';
 import type { Category } from '@/types';
 import { CURRENCIES } from '@/types';
@@ -97,7 +98,7 @@ function Sparkline({ data, width = 80, height = 24, color = '#2563eb' }: {
 export function Settings() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { defaultCurrency, setDefaultCurrency, resetTour, tourCompleted, resetAllState, userName, setUserName, pinHash, setPinHash, pinLength, setPinLength, lockEnabled, setLockEnabled, biometricEnabled, setBiometricEnabled, securityQuestions, setSecurityQuestions } = useAppStore();
+  const { defaultCurrency, setDefaultCurrency, resetTour, tourCompleted, resetAllState, userName, setUserName, pinHash, setPinHash, pinLength, setPinLength, lockEnabled, setLockEnabled, biometricEnabled, setBiometricEnabled, securityQuestions, setSecurityQuestions, darkMode, setDarkMode } = useAppStore();
   const { confirm, ConfirmDialog } = useConfirm();
   const categories = useLiveQuery(() => db.categories.toArray());
   const exchangeRates = useLiveQuery(() => db.exchangeRates.toArray());
@@ -106,7 +107,7 @@ export function Settings() {
   // --- Category state ---
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [catForm, setCatForm] = useState({ name: '', type: 'expense' as 'income' | 'expense', icon: 'plus-circle', color: '#2563eb' });
+  const [catForm, setCatForm] = useState({ name: '', type: 'expense' as 'income' | 'expense', categoryType: 'need' as 'need' | 'want' | undefined, icon: 'plus-circle', color: '#2563eb' });
   const [catFormErrors, setCatFormErrors] = useState<Record<string, string>>({});
   const [catSearchTerm, setCatSearchTerm] = useState('');
 
@@ -364,14 +365,14 @@ export function Settings() {
   const openNewCategory = () => {
     setEditingCategory(null);
     setCatFormErrors({});
-    setCatForm({ name: '', type: 'expense', icon: 'plus-circle', color: '#2563eb' });
+    setCatForm({ name: '', type: 'expense', categoryType: 'need', icon: 'plus-circle', color: '#2563eb' });
     setCategoryModalOpen(true);
   };
 
   const openEditCategory = (cat: Category) => {
     setEditingCategory(cat);
     setCatFormErrors({});
-    setCatForm({ name: cat.name, type: cat.type, icon: cat.icon || 'plus-circle', color: cat.color });
+    setCatForm({ name: cat.name, type: cat.type, categoryType: cat.categoryType || (cat.type === 'expense' ? 'need' : undefined), icon: cat.icon || 'plus-circle', color: cat.color });
     setCategoryModalOpen(true);
   };
 
@@ -385,11 +386,13 @@ export function Settings() {
         name: catForm.name,
         color: catForm.color,
         icon: catForm.icon,
+        categoryType: catForm.type === 'expense' ? catForm.categoryType : undefined,
       });
     } else {
       await db.categories.add({
         name: catForm.name,
         type: catForm.type,
+        categoryType: catForm.type === 'expense' ? catForm.categoryType : undefined,
         icon: catForm.icon || 'plus-circle',
         color: catForm.color,
         isDefault: false,
@@ -612,14 +615,14 @@ export function Settings() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-900">{t('settings.title')}</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('settings.title')}</h1>
 
       {/* Profile */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <User className="w-5 h-5 text-primary" />
-            <h2 className="text-base font-semibold text-gray-900">{t('profile.title')}</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('profile.title')}</h2>
           </div>
         </CardHeader>
         <CardContent>
@@ -629,7 +632,37 @@ export function Settings() {
             onChange={(e) => setUserName(e.target.value)}
             placeholder={t('profile.userNamePlaceholder')}
           />
-          <p className="text-xs text-gray-400 mt-2">{t('profile.userNameDesc')}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{t('profile.userNameDesc')}</p>
+        </CardContent>
+      </Card>
+
+      {/* Theme */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            {darkMode ? <Moon className="w-5 h-5 text-primary" /> : <Sun className="w-5 h-5 text-primary" />}
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.theme')}</h2>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            <Button
+              variant={!darkMode ? 'primary' : 'outline'}
+              size="sm"
+              onClick={() => setDarkMode(false)}
+            >
+              <Sun className="w-4 h-4" />
+              {t('settings.lightMode')}
+            </Button>
+            <Button
+              variant={darkMode ? 'primary' : 'outline'}
+              size="sm"
+              onClick={() => setDarkMode(true)}
+            >
+              <Moon className="w-4 h-4" />
+              {t('settings.darkMode')}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -638,7 +671,7 @@ export function Settings() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Globe className="w-5 h-5 text-primary" />
-            <h2 className="text-base font-semibold text-gray-900">{t('settings.language')}</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.language')}</h2>
           </div>
         </CardHeader>
         <CardContent>
@@ -666,7 +699,7 @@ export function Settings() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Wallet className="w-5 h-5 text-primary" />
-            <h2 className="text-base font-semibold text-gray-900">{t('settings.defaultCurrency')}</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.defaultCurrency')}</h2>
           </div>
         </CardHeader>
         <CardContent>
@@ -675,7 +708,7 @@ export function Settings() {
             onChange={(e) => setDefaultCurrency(e.target.value)}
             options={currencyOptions}
           />
-          <p className="text-xs text-gray-400 mt-2">{t('settings.exchangeRatesDesc')}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{t('settings.exchangeRatesDesc')}</p>
         </CardContent>
       </Card>
 
@@ -685,11 +718,11 @@ export function Settings() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Repeat className="w-5 h-5 text-primary" />
-              <h2 className="text-base font-semibold text-gray-900">{t('settings.exchangeRates')}</h2>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.exchangeRates')}</h2>
             </div>
             <div className="flex items-center gap-2">
               {lastRateUpdate && (
-                <span className="text-xs text-gray-400 hidden sm:block">
+                <span className="text-xs text-gray-400 dark:text-gray-500 hidden sm:block">
                   {t('settings.lastUpdate')}: {lastRateUpdate.toLocaleDateString()} {lastRateUpdate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               )}
@@ -718,7 +751,7 @@ export function Settings() {
           </div>
           {/* Outdated rates banner */}
           {ratesOutdated && exchangeRates && exchangeRates.length > 0 && (
-            <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+            <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/50">
               <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
               <p className="text-xs text-amber-700 flex-1">
                 {t('settings.rateOutdatedDesc')}
@@ -745,7 +778,7 @@ export function Settings() {
             <div className="space-y-2">
               {/* Mobile last update info */}
               {lastRateUpdate && (
-                <div className="sm:hidden flex items-center gap-1.5 text-xs text-gray-400 mb-2 pb-2 border-b border-gray-100">
+                <div className="sm:hidden flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 mb-2 pb-2 border-b border-gray-100 dark:border-gray-700/30">
                   <DownloadCloud className="w-3 h-3" />
                   <span>
                     {t('settings.lastUpdate')}: {lastRateUpdate.toLocaleDateString()} {lastRateUpdate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -767,16 +800,16 @@ export function Settings() {
                   return (
                   <div
                     key={rate.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900 flex-shrink-0">
+                      <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900 dark:text-gray-100 flex-shrink-0">
                         <span className="font-bold">{rate.fromCurrency}</span>
-                        <span className="text-gray-400">→</span>
-                        <span className="font-bold">{rate.toCurrency}</span>
+                        <span className="text-gray-400 dark:text-gray-500">→</span>
+                        <span className="font-bold dark:text-gray-100">{rate.toCurrency}</span>
                       </div>
-                      <span className="text-sm text-gray-500 truncate">
-                        1 {rate.fromCurrency} = <strong>{rate.rate}</strong> {rate.toCurrency}
+                      <span className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        1 {rate.fromCurrency} = <strong className="dark:text-gray-200">{rate.rate}</strong> {rate.toCurrency}
                       </span>
                       {/* Inline sparkline */}
                       {loadingHist ? (
@@ -799,7 +832,7 @@ export function Settings() {
                       <Tooltip content={t('settings.rateTrend')}>
                         <button
                           onClick={() => openTrendModal(rate.fromCurrency, rate.toCurrency)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-white transition-colors"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-primary dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-700 transition-colors"
                         >
                           {history && history.length >= 2 ? (
                             history[history.length - 1].rate >= history[0].rate
@@ -813,7 +846,7 @@ export function Settings() {
                       <Tooltip content={t('common.edit')}>
                         <button
                           onClick={() => openEditRate(rate)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-white transition-colors"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-700 transition-colors"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
@@ -821,7 +854,7 @@ export function Settings() {
                       <Tooltip content={t('common.delete')}>
                         <button
                           onClick={() => deleteRate(rate.id!)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-white transition-colors"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-danger dark:hover:text-red-400 hover:bg-white dark:hover:bg-gray-700 transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -833,7 +866,7 @@ export function Settings() {
             </div>
           ) : (
             <div className="text-center py-6">
-              <Repeat className="w-8 h-8 mx-auto text-gray-300 mb-2" />
+              <Repeat className="w-8 h-8 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
               <p className="text-sm text-gray-400">{t('settings.noRates')}</p>
               <p className="text-xs text-gray-300 mt-1">{t('settings.rateExample')}</p>
             </div>
@@ -847,7 +880,7 @@ export function Settings() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Palette className="w-5 h-5 text-primary" />
-              <h2 className="text-base font-semibold text-gray-900">{t('settings.categories')}</h2>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.categories')}</h2>
             </div>
             <Tooltip content={t('settings.newCategory')}>
               <Button size="sm" onClick={openNewCategory}>
@@ -858,9 +891,9 @@ export function Settings() {
           </div>
           {/* Category search */}
           <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
             <input
-              className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-colors"
+              className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors"
               placeholder={t('settings.catSearchPlaceholder')}
               value={catSearchTerm}
               onChange={(e) => setCatSearchTerm(e.target.value)}
@@ -875,12 +908,12 @@ export function Settings() {
                 const IconComp = getIconComponent(cat.icon);
                 const txCount = catTxCounts[cat.id!] || 0;
                 return (
-                <div key={cat.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm group hover:shadow-sm transition-shadow"
+                <div key={cat.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/90 text-sm group hover:shadow-sm transition-shadow"
                      style={{ borderColor: cat.color + '30' }}>
                   <div className="w-5 h-5 rounded flex items-center justify-center" style={{ backgroundColor: cat.color + '20' }}>
                     <IconComp className="w-3 h-3" style={{ color: cat.color }} />
                   </div>
-                  <span className="font-medium text-gray-800">{cat.name}</span>
+                  <span className="font-medium text-gray-800 dark:text-gray-200">{cat.name}</span>
                   <Badge variant="default" className="text-[10px] px-1.5 py-0">
                     {txCount > 0 ? t('settings.catUsage', { count: txCount }) : t('settings.catNoUsage')}
                   </Badge>
@@ -909,12 +942,12 @@ export function Settings() {
                 const IconComp = getIconComponent(cat.icon);
                 const txCount = catTxCounts[cat.id!] || 0;
                 return (
-                <div key={cat.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm group hover:shadow-sm transition-shadow"
+                <div key={cat.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/90 text-sm group hover:shadow-sm transition-shadow"
                      style={{ borderColor: cat.color + '30' }}>
                   <div className="w-5 h-5 rounded flex items-center justify-center" style={{ backgroundColor: cat.color + '20' }}>
                     <IconComp className="w-3 h-3" style={{ color: cat.color }} />
                   </div>
-                  <span className="font-medium text-gray-800">{cat.name}</span>
+                  <span className="font-medium text-gray-800 dark:text-gray-200">{cat.name}</span>
                   <Badge variant="default" className="text-[10px] px-1.5 py-0">
                     {txCount > 0 ? t('settings.catUsage', { count: txCount }) : t('settings.catNoUsage')}
                   </Badge>
@@ -944,14 +977,14 @@ export function Settings() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Bell className="w-5 h-5 text-primary" />
-            <h2 className="text-base font-semibold text-gray-900">{t('settings.notifications')}</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.notifications')}</h2>
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-500 mb-3">{t('settings.notificationsDesc')}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{t('settings.notificationsDesc')}</p>
           <div className="flex items-center gap-3">
             {notifPermission === 'granted' ? (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary-light text-secondary text-sm font-medium">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary-light dark:bg-secondary/20 text-secondary dark:text-green-300 text-sm font-medium">
                 <Bell className="w-4 h-4" />
                 {t('settings.notificationsEnabled')}
               </div>
@@ -974,11 +1007,11 @@ export function Settings() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <RotateCcw className="w-5 h-5 text-primary" />
-            <h2 className="text-base font-semibold text-gray-900">{t('settings.tour')}</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.tour')}</h2>
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-500 mb-3">{t('settings.resetTourDesc')}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{t('settings.resetTourDesc')}</p>
           <div className="flex items-center gap-3">
             <Tooltip content={tourCompleted ? t('settings.resetTour') : t('settings.tour')}>
               <Button variant="outline" onClick={handleResetTour}>
@@ -1001,7 +1034,7 @@ export function Settings() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Lock className="w-5 h-5 text-primary" />
-            <h2 className="text-base font-semibold text-gray-900">{t('security.title')}</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('security.title')}</h2>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -1009,8 +1042,8 @@ export function Settings() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <div>
-                <p className="text-sm font-medium text-gray-900">{t('security.pinLock')}</p>
-                <p className="text-xs text-gray-400">{t('security.pinLockDesc')}</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('security.pinLock')}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{t('security.pinLockDesc')}</p>
               </div>
               {pinHash ? (
                 <div className="flex items-center gap-2">
@@ -1042,20 +1075,20 @@ export function Settings() {
                     checked={lockEnabled}
                     onChange={(e) => setLockEnabled(e.target.checked)}
                   />
-                  <div className="w-10 h-6 rounded-full bg-gray-200 peer-checked:bg-primary transition-colors duration-200" />
+                  <div className="w-10 h-6 rounded-full bg-gray-200 dark:bg-gray-600 peer-checked:bg-primary dark:peer-checked:bg-primary transition-colors duration-200" />
                   <div className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm peer-checked:translate-x-4 transition-transform duration-200" />
                 </div>
-                <span className="text-sm text-gray-700 font-medium">{t('security.pinLock')}</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">{t('security.pinLock')}</span>
               </label>
             )}
           </div>
 
           {/* Biometric */}
-          <div className="pt-3 border-t border-gray-100">
+          <div className="pt-3 border-t border-gray-100 dark:border-gray-700/30">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-900">{t('security.biometric')}</p>
-                <p className="text-xs text-gray-400">{t('security.biometricDesc')}</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('security.biometric')}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{t('security.biometricDesc')}</p>
               </div>
               {bioAvailable ? (
                 <div className="flex items-center gap-2">
@@ -1079,7 +1112,7 @@ export function Settings() {
                               }
                             }}
                           />
-                          <div className="w-10 h-6 rounded-full bg-gray-200 peer-checked:bg-primary transition-colors duration-200" />
+                          <div className="w-10 h-6 rounded-full bg-gray-200 dark:bg-gray-600 peer-checked:bg-primary dark:peer-checked:bg-primary transition-colors duration-200" />
                           <div className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm peer-checked:translate-x-4 transition-transform duration-200" />
                         </div>
                       </label>
@@ -1099,11 +1132,11 @@ export function Settings() {
 
           {/* Security Questions for PIN recovery */}
           {pinHash && (
-            <div className="pt-3 border-t border-gray-100">
+            <div className="pt-3 border-t border-gray-100 dark:border-gray-700/30">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{t('security.securityQuestions')}</p>
-                  <p className="text-xs text-gray-400">{t('security.securityQuestionsDesc')}</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('security.securityQuestions')}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">{t('security.securityQuestionsDesc')}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {securityQuestions.length > 0 && (
@@ -1120,7 +1153,7 @@ export function Settings() {
               {securityQuestions.length > 0 && (
                 <ul className="mt-2 space-y-1">
                   {securityQuestions.map((q, i) => (
-                    <li key={i} className="flex items-center gap-2 text-xs text-gray-500">
+                    <li key={i} className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0" />
                       <span className="truncate">{q.question}</span>
                     </li>
@@ -1135,7 +1168,7 @@ export function Settings() {
       {/* Data Management */}
       <Card>
         <CardHeader>
-          <h2 className="text-base font-semibold text-gray-900">{t('settings.dataManagement')}</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.dataManagement')}</h2>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
@@ -1163,12 +1196,12 @@ export function Settings() {
       {/* About */}
       <Card>
         <CardHeader>
-          <h2 className="text-base font-semibold text-gray-900">{t('settings.about')}</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.about')}</h2>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-500">MyEco - {t('app.tagline')}</p>
-          <p className="text-sm text-gray-400 mt-1">{t('settings.version')} 1.0.0</p>
-          <p className="text-xs text-gray-400 mt-2">Built with React + TypeScript + Dexie.js + Tailwind CSS</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">MyEco - {t('app.tagline')}</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{t('settings.version')} 1.0.0</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">Built with React + TypeScript + Dexie.js + Tailwind CSS</p>
         </CardContent>
       </Card>
 
@@ -1209,9 +1242,41 @@ export function Settings() {
             value={catForm.color}
             onChange={(e) => setCatForm(prev => ({ ...prev, color: e.target.value }))}
           />
+          {/* Category type selector (expense only) */}
+          {catForm.type === 'expense' && (
+            <>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('fiftyThirtyTwenty.categoryType')}</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCatForm(prev => ({ ...prev, categoryType: 'need' as const }))}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
+                    catForm.categoryType === 'need'
+                      ? 'border-blue-500 bg-blue-50 text-blue-700 ring-1 ring-blue-500/30'
+                      : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  <span className="block text-xs">{t('fiftyThirtyTwenty.need')}</span>
+                  <span className="block text-[10px] opacity-70">{t('fiftyThirtyTwenty.needDesc')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCatForm(prev => ({ ...prev, categoryType: 'want' as const }))}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
+                    catForm.categoryType === 'want'
+                      ? 'border-purple-500 bg-purple-50 text-purple-700 ring-1 ring-purple-500/30'
+                      : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  <span className="block text-xs">{t('fiftyThirtyTwenty.want')}</span>
+                  <span className="block text-[10px] opacity-70">{t('fiftyThirtyTwenty.wantDesc')}</span>
+                </button>
+              </div>
+            </>
+          )}
           {/* Icon selector */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.catIcon')}</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('settings.catIcon')}</label>
             <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5">
               {CATEGORY_ICONS.map(({ name, component: IconComp }) => (
                 <button
@@ -1221,7 +1286,7 @@ export function Settings() {
                   className={`p-2 rounded-lg border transition-all ${
                     catForm.icon === name
                       ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-                      : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600 hover:bg-gray-50'
+                      : 'border-gray-200 dark:border-gray-600 text-gray-400 dark:text-gray-500 hover:border-gray-300 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                   }`}
                   title={name}
                 >
@@ -1231,7 +1296,7 @@ export function Settings() {
             </div>
           </div>
           {/* Preview */}
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50">
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
             {(() => {
               const PreviewIcon = getIconComponent(catForm.icon);
               return (
@@ -1239,8 +1304,8 @@ export function Settings() {
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: catForm.color + '20' }}>
                     <PreviewIcon className="w-4 h-4" style={{ color: catForm.color }} />
                   </div>
-                  <span className="text-sm font-medium text-gray-700">{catForm.name || '(preview)'}</span>
-                  <span className="text-xs text-gray-400">{catForm.type === 'income' ? t('common.income') : t('common.expense')}</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{catForm.name || '(preview)'}</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">{catForm.type === 'income' ? t('common.income') : t('common.expense')}</span>
                 </>
               );
             })()}
@@ -1297,7 +1362,7 @@ export function Settings() {
             onChange={(e) => { setRateForm(prev => ({ ...prev, rate: parseFloat(e.target.value) || 0 })); setRateFormErrors({}); }}
             error={rateFormErrors.rate}
           />
-          <p className="text-xs text-gray-400">{t('settings.rateExample')}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">{t('settings.rateExample')}</p>
         </div>
       </Modal>
 
@@ -1333,7 +1398,7 @@ export function Settings() {
             <>
               {/* PIN Length selector */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('security.pinLength')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('security.pinLength')}</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -1341,7 +1406,7 @@ export function Settings() {
                     className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
                       pinLength === 4
                         ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-                        : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                        : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                     }`}
                   >
                     4 {t('security.digits')}
@@ -1352,7 +1417,7 @@ export function Settings() {
                     className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
                       pinLength === 6
                         ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-                        : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                        : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                     }`}
                   >
                     6 {t('security.digits')}
@@ -1388,7 +1453,7 @@ export function Settings() {
             </>
           )}
           {pinModalMode === 'remove' && (
-            <p className="text-sm text-gray-500">{t('security.pinLockDesc')}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('security.pinLockDesc')}</p>
           )}
         </div>
       </Modal>
@@ -1411,14 +1476,14 @@ export function Settings() {
             <p className="text-sm text-danger">{secQErrors.general}</p>
           )}
           {secQList.map((q, idx) => (
-            <div key={idx} className="space-y-3 p-4 rounded-lg border border-gray-100 bg-gray-50/50">
+            <div key={idx} className="space-y-3 p-4 rounded-lg border border-gray-100 dark:border-gray-700/30 bg-gray-50/50 dark:bg-gray-800/30">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 {t('security.questionNumber', { number: idx + 1 })}
               </p>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('security.selectQuestion')}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('security.selectQuestion')}</label>
                 <select
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
                   value={PREDEFINED_QUESTIONS.some(pq => pq.value === q.question) ? q.question : 'custom'}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -1468,7 +1533,7 @@ export function Settings() {
               />
             </div>
           ))}
-          <p className="text-xs text-gray-400">{t('security.securityQuestionsNote')}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">{t('security.securityQuestionsNote')}</p>
         </div>
       </Modal>
 
@@ -1508,19 +1573,19 @@ export function Settings() {
             <div className="space-y-4">
               {/* Stats */}
               <div className="grid grid-cols-4 gap-3">
-                <div className="p-3 rounded-lg bg-gray-50 text-center">
+                <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-center">
                   <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('settings.rateCurrent')}</p>
-                  <p className="text-sm font-bold text-gray-900 mt-0.5">{current.toFixed(6)}</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-0.5">{current.toFixed(6)}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-gray-50 text-center">
+                <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-center">
                   <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('settings.rateMin')}</p>
-                  <p className="text-sm font-bold text-gray-900 mt-0.5">{min.toFixed(6)}</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-0.5">{min.toFixed(6)}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-gray-50 text-center">
+                <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-center">
                   <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('settings.rateMax')}</p>
-                  <p className="text-sm font-bold text-gray-900 mt-0.5">{max.toFixed(6)}</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-0.5">{max.toFixed(6)}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-gray-50 text-center">
+                <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-center">
                   <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('settings.rateChange', { days: history.length })}</p>
                   <p className={`text-sm font-bold mt-0.5 flex items-center justify-center gap-0.5 ${isUp ? 'text-secondary' : 'text-danger'}`}>
                     {isUp ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
@@ -1539,7 +1604,7 @@ export function Settings() {
                         <stop offset="95%" stopColor={isUp ? '#059669' : '#dc2626'} stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" className="dark:opacity-20" />
                     <XAxis
                       dataKey="date"
                       tick={{ fontSize: 11, fill: '#9ca3af' }}
@@ -1560,7 +1625,7 @@ export function Settings() {
                     <RechartsTooltip
                       contentStyle={{
                         borderRadius: '8px',
-                        border: '1px solid #e5e7eb',
+                        border: '1px solid #e5e7eb', backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
                         fontSize: '12px',
                       }}
                       formatter={(value: any) => [Number(value).toFixed(6), `${trendRate.fromCurrency} → ${trendRate.toCurrency}`] as any}

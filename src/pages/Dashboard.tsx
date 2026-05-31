@@ -8,10 +8,11 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip as UITooltip } from '@/components/ui/tooltip';
-import { ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, TrendingDown, Plus, ArrowLeftRight, PiggyBank, AlertTriangle, BellRing, CheckCircle } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, TrendingDown, Plus, ArrowLeftRight, AlertTriangle, BellRing, CheckCircle, House, ShoppingBag, PiggyBank } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToastStore } from '@/stores/useToastStore';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
+import { calculateFiftyThirtyTwenty, type FiftyThirtyTwentyData } from '@/lib/fiftyThirtyTwenty';
 
 export function Dashboard() {
   const { t } = useTranslation();
@@ -106,6 +107,8 @@ export function Dashboard() {
     percentage: number;
   }[]>([]);
 
+  const [fiftyThirtyTwentyData, setFiftyThirtyTwentyData] = useState<FiftyThirtyTwentyData | null>(null);
+
   const addToast = useToastStore((s) => s.addToast);
   const notifiedOverspent = useRef(false);
 
@@ -140,6 +143,13 @@ export function Dashboard() {
         };
       }).sort((a, b) => b.value - a.value).slice(0, 6);
       setConvertedSpendingData(data);
+
+      // Calculate 50/30/20 rule
+      if (categories) {
+        calculateFiftyThirtyTwenty(monthlyTransactions, categories, defaultCurrency)
+          .then(setFiftyThirtyTwentyData)
+          .catch(() => setFiftyThirtyTwentyData(null));
+      }
 
       // Build budget comparison (actual vs budgeted)
       if (monthlyBudgets && monthlyBudgets.length > 0) {
@@ -195,8 +205,8 @@ export function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('nav.dashboard')}</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('nav.dashboard')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
@@ -210,7 +220,7 @@ export function Dashboard() {
       {/* Loading State */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-6 animate-pulse">
+          <div className="bg-gradient-to-br from-primary to-primary-dark dark:from-primary-dark dark:to-primary/80 rounded-2xl p-6 animate-pulse">
             <Skeleton className="h-4 w-24 bg-white/20" />
             <Skeleton className="h-8 w-36 mt-3 bg-white/20" />
           </div>
@@ -220,7 +230,7 @@ export function Dashboard() {
         </div>
       ) : isConverting ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-6 animate-pulse">
+          <div className="bg-gradient-to-br from-primary to-primary-dark dark:from-primary-dark dark:to-primary/80 rounded-2xl p-6 animate-pulse">
             <Skeleton className="h-4 w-24 bg-white/20" />
             <Skeleton className="h-8 w-36 mt-3 bg-white/20" />
             <Skeleton className="h-4 w-32 mt-3 bg-white/20" />
@@ -245,30 +255,30 @@ export function Dashboard() {
         <Card>
           <CardContent>
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-gray-500">{t('common.income')}</p>
-              <div className="p-2 rounded-lg bg-green-50">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('common.income')}</p>
+              <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/30">
                 <TrendingUp className="w-4 h-4 text-income" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-gray-900 mt-2">
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
               {formatCurrency(monthlySummary.income, defaultCurrency)}
             </p>
-            <p className="text-xs text-gray-400 mt-1">{t('reports.currentMonth')}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('reports.currentMonth')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent>
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-gray-500">{t('common.expense')}</p>
-              <div className="p-2 rounded-lg bg-red-50">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('common.expense')}</p>
+              <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/30">
                 <TrendingDown className="w-4 h-4 text-expense" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-gray-900 mt-2">
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
               {formatCurrency(monthlySummary.expense, defaultCurrency)}
             </p>
-            <p className="text-xs text-gray-400 mt-1">{t('reports.currentMonth')}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('reports.currentMonth')}</p>
           </CardContent>
         </Card>
       </div>
@@ -279,7 +289,7 @@ export function Dashboard() {
         {/* Spending by Category */}
         <Card>
           <CardHeader>
-            <h2 className="text-base font-semibold text-gray-900">{t('reports.spendingByCategory')}</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('reports.spendingByCategory')}</h2>
           </CardHeader>
           <CardContent>
             {spendingData.length > 0 ? (
@@ -311,9 +321,9 @@ export function Dashboard() {
                     <div key={item.name} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                        <span className="text-gray-600">{item.name}</span>
+                        <span className="text-gray-600 dark:text-gray-300">{item.name}</span>
                       </div>
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
                         {formatCurrency(item.value, defaultCurrency)}
                       </span>
                     </div>
@@ -321,7 +331,7 @@ export function Dashboard() {
                 </div>
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-400">
+              <div className="text-center py-8 text-gray-400 dark:text-gray-500">
                 <p>{t('common.noData')}</p>
               </div>
             )}
@@ -331,14 +341,14 @@ export function Dashboard() {
         {/* Accounts Overview */}
         <Card>
           <CardHeader>
-            <h2 className="text-base font-semibold text-gray-900">{t('accounts.title')}</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('accounts.title')}</h2>
           </CardHeader>
           <CardContent className="space-y-3">
             {accounts?.length ? (
               accounts.map((acc) => (
                 <div
                   key={acc.id}
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
                   onClick={() => navigate('/accounts')}
                 >
                   <div className="flex items-center gap-3">
@@ -349,17 +359,17 @@ export function Dashboard() {
                       {acc.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{acc.name}</p>
-                      <p className="text-xs text-gray-400">{t(`accounts.${acc.type}`)}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{acc.name}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">{t(`accounts.${acc.type}`)}</p>
                     </div>
                   </div>
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {formatCurrency(balances[acc.id!] || 0, acc.currency)}
                   </p>
                 </div>
               ))
             ) : (
-              <div className="text-center py-6">
+              <div className="text-center py-6 dark:text-gray-400">
                 <p className="text-gray-400 text-sm">{t('accounts.title')}</p>
                 <Button variant="ghost" size="sm" className="mt-2" onClick={() => navigate('/accounts')}>
                   <Plus className="w-4 h-4" />
@@ -371,6 +381,129 @@ export function Dashboard() {
         </Card>
       </div>
 
+      {/* 50/30/20 Rule Card */}
+      {fiftyThirtyTwentyData && fiftyThirtyTwentyData.totalIncome > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <PiggyBank className="w-5 h-5 text-primary" />
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">50/30/20 {t('budgets.title')}</h2>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* Summary numbers */}
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50">
+                <div className="flex items-center gap-1.5 text-blue-700">
+                  <House className="w-4 h-4" />
+                  <span className="text-xs font-semibold uppercase tracking-wider">{t('fiftyThirtyTwenty.needs')}</span>
+                </div>
+                <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">{formatCurrency(fiftyThirtyTwentyData.needs, defaultCurrency)}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{fiftyThirtyTwentyData.needsPercentage.toFixed(0)}%</span>
+                  <span className={cn(
+                    'text-[10px] font-medium px-1.5 py-0.5 rounded-full',
+                    fiftyThirtyTwentyData.needsOnTrack
+                      ? 'bg-green-50 text-green-600'
+                      : 'bg-red-50 text-red-600'
+                  )}>
+                    {fiftyThirtyTwentyData.needsOnTrack ? '✓' : '✗'} 50%
+                  </span>
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-800/50">
+                <div className="flex items-center gap-1.5 text-purple-700">
+                  <ShoppingBag className="w-4 h-4" />
+                  <span className="text-xs font-semibold uppercase tracking-wider">{t('fiftyThirtyTwenty.wants')}</span>
+                </div>
+                <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">{formatCurrency(fiftyThirtyTwentyData.wants, defaultCurrency)}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{fiftyThirtyTwentyData.wantsPercentage.toFixed(0)}%</span>
+                  <span className={cn(
+                    'text-[10px] font-medium px-1.5 py-0.5 rounded-full',
+                    fiftyThirtyTwentyData.wantsOnTrack
+                      ? 'bg-green-50 text-green-600'
+                      : 'bg-red-50 text-red-600'
+                  )}>
+                    {fiftyThirtyTwentyData.wantsOnTrack ? '✓' : '✗'} 30%
+                  </span>
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/30 border border-green-100 dark:border-green-800/50">
+                <div className="flex items-center gap-1.5 text-green-700">
+                  <PiggyBank className="w-4 h-4" />
+                  <span className="text-xs font-semibold uppercase tracking-wider">{t('fiftyThirtyTwenty.savings')}</span>
+                </div>
+                <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">{formatCurrency(fiftyThirtyTwentyData.savings, defaultCurrency)}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{fiftyThirtyTwentyData.savingsPercentage.toFixed(0)}%</span>
+                  <span className={cn(
+                    'text-[10px] font-medium px-1.5 py-0.5 rounded-full',
+                    fiftyThirtyTwentyData.savingsOnTrack
+                      ? 'bg-green-50 text-green-600'
+                      : 'bg-amber-50 text-amber-600'
+                  )}>
+                    {fiftyThirtyTwentyData.savingsOnTrack ? '✓' : '!'} 20%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Stacked bar: current allocation vs ideal */}
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
+                  <span>{t('fiftyThirtyTwenty.current')}</span>
+                </div>
+                <div className="h-6 rounded-full overflow-hidden flex">
+                  <div
+                    className="bg-blue-500 transition-all duration-700"
+                    style={{ width: `${Math.max(1, fiftyThirtyTwentyData.needsPercentage)}%` }}
+                    title={`${t('fiftyThirtyTwenty.needs')}: ${fiftyThirtyTwentyData.needsPercentage.toFixed(0)}%`}
+                  />
+                  <div
+                    className="bg-purple-500 transition-all duration-700"
+                    style={{ width: `${Math.max(0, fiftyThirtyTwentyData.wantsPercentage)}%` }}
+                    title={`${t('fiftyThirtyTwenty.wants')}: ${fiftyThirtyTwentyData.wantsPercentage.toFixed(0)}%`}
+                  />
+                  <div
+                    className="bg-green-500 transition-all duration-700"
+                    style={{ width: `${Math.max(0, fiftyThirtyTwentyData.savingsPercentage)}%` }}
+                    title={`${t('fiftyThirtyTwenty.savings')}: ${fiftyThirtyTwentyData.savingsPercentage.toFixed(0)}%`}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 mb-1.5">
+                  <span>{t('fiftyThirtyTwenty.ideal')}</span>
+                </div>
+                <div className="h-4 rounded-full overflow-hidden flex bg-gray-100 dark:bg-gray-700/50">
+                  <div className="bg-blue-300/60" style={{ width: '50%' }} />
+                  <div className="bg-purple-300/60" style={{ width: '30%' }} />
+                  <div className="bg-green-300/60" style={{ width: '20%' }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center justify-center gap-6 mt-4 text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                <span className="capitalize">{t('fiftyThirtyTwenty.needs')}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+                <span className="capitalize">{t('fiftyThirtyTwenty.wants')}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                <span className="capitalize">{t('fiftyThirtyTwenty.savings')}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Budget Overview */}
       {budgetComparison.length > 0 && (
         <Card>
@@ -378,7 +511,7 @@ export function Dashboard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <PiggyBank className="w-5 h-5 text-primary" />
-                <h2 className="text-base font-semibold text-gray-900">{t('budgets.title')}</h2>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('budgets.title')}</h2>
               </div>
               <Button variant="ghost" size="sm" onClick={() => navigate('/budgets')}>
                 {t('common.all')}
@@ -390,7 +523,7 @@ export function Dashboard() {
             {/* Total summary bar */}
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                   {formatCurrency(budgetComparison.reduce((s, b) => s + b.spent, 0), defaultCurrency)}
                   <span className="text-sm text-gray-400 font-normal">
                     {' '}/ {formatCurrency(budgetComparison.reduce((s, b) => s + b.budgeted, 0), defaultCurrency)}
@@ -414,7 +547,7 @@ export function Dashboard() {
               const overspent = budgetComparison.filter(c => c.percentage > 100);
               if (overspent.length > 0) {
                 return (
-                  <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3">
+                  <div className="mb-4 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/30 p-3">
                     <div className="flex items-center gap-2 mb-2">
                       <BellRing className="w-4 h-4 text-danger" />
                       <span className="text-sm font-semibold text-red-800">{t('budgets.alerts')}</span>
@@ -455,7 +588,7 @@ export function Dashboard() {
             })()}
 
             {budgetComparison.length > 0 && budgetComparison.filter(c => c.percentage > 100).length === 0 && (
-              <div className="mb-3 flex items-center gap-2 text-xs text-gray-400">
+              <div className="mb-3 flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
                 <CheckCircle className="w-3.5 h-3.5 text-secondary" />
                 <span>{t('budgets.noOverspent')}</span>
               </div>
@@ -471,10 +604,10 @@ export function Dashboard() {
                         className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                         style={{ backgroundColor: item.categoryColor }}
                       />
-                      <span className="text-gray-700 truncate">{item.categoryName}</span>
+                      <span className="text-gray-700 dark:text-gray-300 truncate">{item.categoryName}</span>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
                         {formatCurrency(item.spent, defaultCurrency)}
                         <span className="text-gray-300"> / {formatCurrency(item.budgeted, defaultCurrency)}</span>
                       </span>
@@ -483,7 +616,7 @@ export function Dashboard() {
                       )}
                     </div>
                   </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-2 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden">
                     <div
                       className={cn(
                         'h-full rounded-full transition-all duration-500',
@@ -497,7 +630,7 @@ export function Dashboard() {
             </div>
 
             {budgetComparison.length > 5 && (
-              <p className="text-xs text-gray-400 mt-3 text-center">
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-3 text-center">
                 +{budgetComparison.length - 5} {t('budgets.title').toLowerCase()} ·{' '}
                 <button
                   onClick={() => navigate('/budgets')}
@@ -515,7 +648,7 @@ export function Dashboard() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-900">{t('transactions.recent')}</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('transactions.recent')}</h2>
             <Button variant="ghost" size="sm" onClick={() => navigate('/transactions')}>
               {t('common.all')}
               <ArrowLeftRight className="w-4 h-4 ml-1" />
@@ -524,9 +657,9 @@ export function Dashboard() {
         </CardHeader>
         <CardContent>
           {recentTransactions?.length ? (
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-gray-50 dark:divide-gray-700/30">
               {recentTransactions.slice(0, 5).map((txn) => (
-                <div key={txn.id} className="flex items-center justify-between py-3 hover:bg-gray-50 rounded-lg px-2 -mx-2 transition-colors">
+                <div key={txn.id} className="flex items-center justify-between py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2 -mx-2 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className={cn(
                       'w-9 h-9 rounded-lg flex items-center justify-center',
@@ -541,8 +674,8 @@ export function Dashboard() {
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{txn.description || getCategoryName(txn.categoryId)}</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{txn.description || getCategoryName(txn.categoryId)}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">
                         {getAccountName(txn.accountId)} · {formatDate(txn.date)}
                       </p>
                     </div>
@@ -550,7 +683,7 @@ export function Dashboard() {
                   <div className="text-right">
                     <p className={cn(
                       'text-sm font-semibold',
-                      txn.type === 'income' ? 'text-income' : txn.type === 'expense' ? 'text-expense' : 'text-gray-900'
+                      txn.type === 'income' ? 'text-income' : txn.type === 'expense' ? 'text-expense' : 'text-gray-900 dark:text-gray-100'
                     )}>
                       {txn.type === 'income' ? '+' : txn.type === 'expense' ? '-' : ''}
                       {formatCurrency(txn.amount, txn.currency)}
@@ -560,7 +693,7 @@ export function Dashboard() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
+            <div className="text-center py-8 dark:text-gray-400">
               <p className="text-gray-400">{t('common.noData')}</p>
               <UITooltip content={t('transactions.newTransaction')}>
               <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate('/transactions')}>

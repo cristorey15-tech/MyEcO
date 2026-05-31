@@ -37,6 +37,7 @@
     "status": "Estado",
     "actions": "Acciones",
     "loading": "Cargando...",
+    "more": "más",
     "noData": "Sin datos",
     "all": "Todos",
     "month": "Mes",
@@ -172,7 +173,10 @@
     "customRange": "Rango Personalizado",
     "exportPDF": "Exportar PDF",
     "exportExcel": "Exportar Excel",
-    "exportCSV": "Exportar CSV"
+    "exportCSV": "Exportar CSV",
+    "avgMonthly": "Prom. mensual",
+    "clickBarHint": "Haz clic en una barra o porción para ver detalles",
+    "categoryComparison": "Comparativa de Categorías"
   },
   "tour": {
     "skip": "Saltar tour",
@@ -240,6 +244,7 @@
     "importData": "Importar datos",
     "theme": "Tema",
     "lightMode": "Modo Claro",
+    "darkMode": "Modo Oscuro",
     "about": "Acerca de",
     "version": "Versión",
     "tour": "Tour de inicio",
@@ -420,5 +425,45 @@
     "maxLength": "Máximo {{max}} caracteres",
     "accountsMustDiffer": "Las cuentas deben ser diferentes",
     "selectRecurringInterval": "Debes seleccionar un intervalo de recurrencia"
+  },
+  "fiftyThirtyTwenty": {
+    "categoryType": "Tipo de Categoría",
+    "need": "Necesidad",
+    "needDesc": "Gastos esenciales",
+    "want": "Deseo",
+    "wantDesc": "Gastos discrecionales",
+    "needs": "Necesidades",
+    "wants": "Deseos",
+    "savings": "Ahorro",
+    "current": "Actual",
+    "ideal": "Ideal",
+    "budgetRule": "Regla 50/30/20",
+    "budgetRuleDesc": "Distribuye: 50% necesidades, 30% deseos, 20% ahorro",
+    "needsOnTrack": "Las necesidades están dentro del 50% objetivo",
+    "needsOver": "Las necesidades superan el 50% de los ingresos",
+    "wantsOnTrack": "Los deseos están dentro del 30% objetivo",
+    "wantsOver": "Los deseos superan el 30% de los ingresos",
+    "savingsOnTrack": "El ahorro está al 20% o más de los ingresos",
+    "savingsLow": "El ahorro está por debajo del 20% de los ingresos",
+    "ofIncome": "de ingresos"
+  },
+  "shortcuts": {
+    "title": "Atajos de Teclado",
+    "subtitle": "Presiona una tecla para navegar rápido",
+    "tip": "Los atajos no funcionan mientras escribes en campos de texto.",
+    "dashboard": "Dashboard",
+    "accounts": "Cuentas",
+    "transactions": "Transacciones",
+    "budgets": "Presupuestos",
+    "goals": "Metas",
+    "debts": "Deudas",
+    "reports": "Reportes",
+    "settings": "Configuración",
+    "newTransaction": "Nueva Transacción",
+    "showHelp": "Mostrar atajos de teclado",
+    "closeModal": "Cerrar modal / diálogo",
+    "categoryNav": "Navegación",
+    "categoryActions": "Acciones",
+    "categoryGlobal": "Globales"
   }
 }

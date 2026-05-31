@@ -32,7 +32,7 @@ export function OfflineBanner() {
         >
           <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-center gap-2">
             <WifiOff className="w-4 h-4 text-warning" />
-            <span className="text-sm font-medium text-warning/80">
+            <span className="text-sm font-medium text-warning/80 dark:text-warning/90">
               {t('offline.banner')}
             </span>
             <span className="text-xs text-warning/60 ml-1">

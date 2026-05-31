@@ -10,7 +10,7 @@ export function Skeleton({ className, shimmer = true }: SkeletonProps) {
   return (
     <div
       className={cn(
-        'relative rounded-lg bg-gray-100 overflow-hidden',
+        'relative rounded-lg bg-gray-100 dark:bg-gray-700 overflow-hidden',
         shimmer ? 'shimmer-skeleton' : 'animate-pulse',
         className
       )}
@@ -21,7 +21,7 @@ export function Skeleton({ className, shimmer = true }: SkeletonProps) {
 
 export function CardSkeleton() {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/50 shadow-sm p-5 space-y-4">
       <div className="flex items-center gap-3">
         <Skeleton className="w-11 h-11 rounded-xl" />
         <div className="space-y-2 flex-1">
@@ -56,7 +56,7 @@ export function DashboardSkeleton() {
       {/* Balance cards grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/50 shadow-sm p-5 space-y-4">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-8 w-32" />
             <Skeleton className="h-3 w-20" />
@@ -66,14 +66,14 @@ export function DashboardSkeleton() {
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {[1, 2].map((i) => (
-          <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/50 shadow-sm p-5 space-y-4">
             <Skeleton className="h-5 w-40" />
             <Skeleton className="h-48 w-full" />
           </div>
         ))}
       </div>
       {/* Recent transactions */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/50 shadow-sm p-5 space-y-4">
         <Skeleton className="h-5 w-44" />
         {[1, 2, 3, 4].map((i) => (
           <TableRowSkeleton key={i} />
@@ -107,7 +107,7 @@ export function ReportsPageSkeleton() {
       <Skeleton className="h-7 w-32" />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {[1, 2].map((i) => (
-          <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/50 shadow-sm p-5 space-y-4">
             <Skeleton className="h-5 w-40" />
             <Skeleton className="h-52 w-full" />
           </div>

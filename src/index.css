@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary: #2563eb;
   --color-primary-dark: #1d4ed8;
@@ -15,12 +17,12 @@
   --color-income: #059669;
   --color-expense: #dc2626;
 
-  --color-bg: #f8fafc;
-  --color-card: #ffffff;
-  --color-text: #0f172a;
-  --color-text-muted: #64748b;
-  --color-border: #e2e8f0;
-  --color-hover: #f1f5f9;
+  --color-bg: var(--color-bg, #f8fafc);
+  --color-card: var(--color-card, #ffffff);
+  --color-text: var(--color-text, #0f172a);
+  --color-text-muted: var(--color-text-muted, #64748b);
+  --color-border: var(--color-border, #e2e8f0);
+  --color-hover: var(--color-hover, #f1f5f9);
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
@@ -29,6 +31,25 @@
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
+}
+
+/* Dark mode colors */
+:root {
+  --color-bg: #f8fafc;
+  --color-card: #ffffff;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-border: #e2e8f0;
+  --color-hover: #f1f5f9;
+}
+
+.dark {
+  --color-bg: #0f172a;
+  --color-card: #1e293b;
+  --color-text: #f1f5f9;
+  --color-text-muted: #94a3b8;
+  --color-border: #334155;
+  --color-hover: #1e293b;
 }
 
 * {
@@ -51,6 +72,12 @@ body {
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;

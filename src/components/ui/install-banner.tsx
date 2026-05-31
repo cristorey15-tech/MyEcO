@@ -98,11 +98,11 @@ export function InstallBanner() {
 
   return (
     <div className="fixed bottom-20 lg:bottom-4 left-4 right-4 z-50 max-w-sm mx-auto lg:mx-0 lg:left-auto lg:right-4">
-      <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 p-4 animate-slide-up">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 animate-slide-up">
         {/* Close button */}
         <button
           onClick={handleDismiss}
-          className="absolute top-3 right-3 p-0.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          className="absolute top-3 right-3 p-0.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           aria-label={t('common.close')}
         >
           <X className="w-4 h-4" />
@@ -117,10 +117,10 @@ export function InstallBanner() {
           </div>
 
           <div className="flex-1 min-w-0 pr-4">
-            <p className="text-sm font-semibold text-gray-900">
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
               {t('pwaInstall.title')}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {t('pwaInstall.description')}
             </p>
           </div>

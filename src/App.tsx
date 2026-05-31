@@ -6,6 +6,8 @@ import { Layout } from '@/components/layout/Layout';
 import { PageTransition } from '@/components/ui/page-transition';
 import { Tour } from '@/components/onboarding/Tour';
 import { LockScreen } from '@/components/auth/LockScreen';
+import { KeyboardShortcuts } from '@/components/ui/keyboard-shortcuts';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { seedCategories } from '@/lib/db';
 import { useAppStore } from '@/stores/useAppStore';
 import { runAllPeriodicChecks } from '@/lib/notificationService';
@@ -37,7 +39,13 @@ function PageLoader() {
 
 function AnimatedRoutes() {
   const location = useLocation();
-  const { setupCompleted, isHydrated } = useAppStore();
+  const { setupCompleted, isHydrated, darkMode } = useAppStore();
+  const { helpOpen, setHelpOpen } = useKeyboardShortcuts();
+
+  // Apply dark mode class to html element
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+  }, [darkMode]);
 
   // Don't show route guard until store is hydrated
   if (!isHydrated) {
@@ -53,6 +61,8 @@ function AnimatedRoutes() {
       <LockScreen>
         {/* Tour persists across route changes — outside AnimatePresence so it doesn't remount */}
         <Tour />
+        {/* Keyboard shortcuts help modal */}
+        <KeyboardShortcuts isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           {/* Welcome page - outside Layout */}

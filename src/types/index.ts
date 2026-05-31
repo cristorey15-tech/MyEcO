@@ -39,6 +39,7 @@ export interface Category {
   id?: number;
   name: string;
   type: 'income' | 'expense';
+  categoryType?: 'need' | 'want';
   icon: string;
   color: string;
   isDefault: boolean;
@@ -151,7 +152,7 @@ export const ACCOUNT_TYPES: { value: AccountType; labelEs: string; labelEn: stri
   { value: 'investment', labelEs: 'Inversión', labelEn: 'Investment', icon: 'trending-up' },
 ];
 
-export const DEFAULT_CATEGORIES: { nameEs: string; nameEn: string; type: 'income' | 'expense'; icon: string; color: string }[] = [
+export const DEFAULT_CATEGORIES: { nameEs: string; nameEn: string; type: 'income' | 'expense'; categoryType?: 'need' | 'want'; icon: string; color: string }[] = [
   // Income
   { nameEs: 'Salario', nameEn: 'Salary', type: 'income', icon: 'briefcase', color: '#059669' },
   { nameEs: 'Freelance', nameEn: 'Freelance', type: 'income', icon: 'laptop', color: '#2563eb' },
@@ -159,16 +160,16 @@ export const DEFAULT_CATEGORIES: { nameEs: string; nameEn: string; type: 'income
   { nameEs: 'Regalos', nameEn: 'Gifts', type: 'income', icon: 'gift', color: '#d97706' },
   { nameEs: 'Otros Ingresos', nameEn: 'Other Income', type: 'income', icon: 'plus-circle', color: '#6b7280' },
   // Expenses
-  { nameEs: 'Alimentación', nameEn: 'Food', type: 'expense', icon: 'utensils', color: '#dc2626' },
-  { nameEs: 'Transporte', nameEn: 'Transport', type: 'expense', icon: 'car', color: '#2563eb' },
-  { nameEs: 'Vivienda', nameEn: 'Housing', type: 'expense', icon: 'home', color: '#d97706' },
-  { nameEs: 'Servicios', nameEn: 'Utilities', type: 'expense', icon: 'zap', color: '#ca8a04' },
-  { nameEs: 'Salud', nameEn: 'Health', type: 'expense', icon: 'heart', color: '#dc2626' },
-  { nameEs: 'Entretenimiento', nameEn: 'Entertainment', type: 'expense', icon: 'film', color: '#7c3aed' },
-  { nameEs: 'Educación', nameEn: 'Education', type: 'expense', icon: 'book', color: '#2563eb' },
-  { nameEs: 'Compras', nameEn: 'Shopping', type: 'expense', icon: 'shopping-bag', color: '#db2777' },
-  { nameEs: 'Viajes', nameEn: 'Travel', type: 'expense', icon: 'plane', color: '#0891b2' },
-  { nameEs: 'Suscripciones', nameEn: 'Subscriptions', type: 'expense', icon: 'repeat', color: '#6b7280' },
-  { nameEs: 'Impuestos', nameEn: 'Taxes', type: 'expense', icon: 'file-text', color: '#dc2626' },
-  { nameEs: 'Otros Gastos', nameEn: 'Other Expenses', type: 'expense', icon: 'more-horizontal', color: '#6b7280' },
+  { nameEs: 'Alimentación', nameEn: 'Food', type: 'expense', categoryType: 'need', icon: 'utensils', color: '#dc2626' },
+  { nameEs: 'Transporte', nameEn: 'Transport', type: 'expense', categoryType: 'need', icon: 'car', color: '#2563eb' },
+  { nameEs: 'Vivienda', nameEn: 'Housing', type: 'expense', categoryType: 'need', icon: 'home', color: '#d97706' },
+  { nameEs: 'Servicios', nameEn: 'Utilities', type: 'expense', categoryType: 'need', icon: 'zap', color: '#ca8a04' },
+  { nameEs: 'Salud', nameEn: 'Health', type: 'expense', categoryType: 'need', icon: 'heart', color: '#dc2626' },
+  { nameEs: 'Entretenimiento', nameEn: 'Entertainment', type: 'expense', categoryType: 'want', icon: 'film', color: '#7c3aed' },
+  { nameEs: 'Educación', nameEn: 'Education', type: 'expense', categoryType: 'need', icon: 'book', color: '#2563eb' },
+  { nameEs: 'Compras', nameEn: 'Shopping', type: 'expense', categoryType: 'want', icon: 'shopping-bag', color: '#db2777' },
+  { nameEs: 'Viajes', nameEn: 'Travel', type: 'expense', categoryType: 'want', icon: 'plane', color: '#0891b2' },
+  { nameEs: 'Suscripciones', nameEn: 'Subscriptions', type: 'expense', categoryType: 'want', icon: 'repeat', color: '#6b7280' },
+  { nameEs: 'Impuestos', nameEn: 'Taxes', type: 'expense', categoryType: 'need', icon: 'file-text', color: '#dc2626' },
+  { nameEs: 'Otros Gastos', nameEn: 'Other Expenses', type: 'expense', categoryType: 'need', icon: 'more-horizontal', color: '#6b7280' },
 ];

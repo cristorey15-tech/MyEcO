@@ -43,6 +43,7 @@ export async function seedCategories() {
     const categories = DEFAULT_CATEGORIES.map(c => ({
       name: c.nameEs,
       type: c.type,
+      categoryType: c.categoryType, // 'need' | 'want' for expense categories
       icon: c.icon,
       color: c.color,
       isDefault: true,

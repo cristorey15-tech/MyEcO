@@ -42,6 +42,9 @@ interface AppState {
   setBiometricEnabled: (enabled: boolean) => void;
   isLocked: boolean;
   setIsLocked: (locked: boolean) => void;
+  // Dark mode
+  darkMode: boolean;
+  setDarkMode: (dark: boolean) => void;
   // Security questions for PIN recovery
   securityQuestions: { question: string; answerHash: string }[];
   setSecurityQuestions: (questions: { question: string; answerHash: string }[]) => void;
@@ -73,6 +76,7 @@ export const useAppStore = create<AppState>()(
       biometricEnabled: false,
       isLocked: false,
       securityQuestions: [],
+      darkMode: false,
 
       setDefaultCurrency: (currency) => set({ defaultCurrency: currency }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
@@ -93,6 +97,7 @@ export const useAppStore = create<AppState>()(
         biometricEnabled: false,
         isLocked: false,
         securityQuestions: [],
+        darkMode: false,
       }),
       setUserName: (name) => set({ userName: name }),
       setPinHash: (hash) => set({ pinHash: hash }),
@@ -100,6 +105,7 @@ export const useAppStore = create<AppState>()(
       setLockEnabled: (enabled) => set({ lockEnabled: enabled }),
       setBiometricEnabled: (enabled) => set({ biometricEnabled: enabled }),
       setIsLocked: (locked) => set({ isLocked: locked }),
+      setDarkMode: (dark) => set({ darkMode: dark }),
       setSecurityQuestions: (questions) => set({ securityQuestions: questions }),
       setTransactionFilters: (filters) => set((state) => ({
         transactionFilters: { ...state.transactionFilters, ...filters },

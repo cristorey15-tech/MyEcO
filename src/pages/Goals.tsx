@@ -136,7 +136,7 @@ export function Goals() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">{t('goals.title')}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('goals.title')}</h1>
         <Button onClick={openNewModal}>
           <Plus className="w-4 h-4" />
           {t('goals.newGoal')}
@@ -145,9 +145,9 @@ export function Goals() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
         <input
-          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/90 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           placeholder={t('common.search')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -182,8 +182,8 @@ export function Goals() {
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">{goal.name}</p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{goal.name}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">
                           {goal.targetDate && (
                             <span className="flex items-center gap-1 mt-0.5">
                               <Calendar className="w-3 h-3" />
@@ -200,14 +200,14 @@ export function Goals() {
 
                   <div className="mt-4">
                     <div className="flex items-center justify-between text-sm mb-1.5">
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-semibold text-gray-900 dark:text-gray-100">
                         {formatCurrency(goal.currentAmount, goal.currency)}
                       </span>
-                      <span className="text-gray-400">
+                      <span className="text-gray-400 dark:text-gray-500">
                         {formatCurrency(goal.targetAmount, goal.currency)}
                       </span>
                     </div>
-                    <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
                         className={cn(
                           'h-full rounded-full transition-all duration-700 ease-out',
@@ -219,12 +219,12 @@ export function Goals() {
                   </div>
 
                   {!isAchieved && (
-                    <p className="text-xs text-gray-400 mt-2">
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                       {t('goals.remainingToGoal', { amount: formatCurrency(remaining, goal.currency) })}
                     </p>
                   )}
 
-                  <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-50">
+                  <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-50 dark:border-gray-700/30">
                     <Button variant="ghost" size="sm" onClick={() => openEditModal(goal)}>
                       {t('common.edit')}
                     </Button>
@@ -244,8 +244,8 @@ export function Goals() {
       ) : (
         <Card>
           <CardContent className="text-center py-12">
-            <Target className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-            <p className="text-gray-500">{t('goals.title')}</p>
+            <Target className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" />
+            <p className="text-gray-500 dark:text-gray-400">{t('goals.title')}</p>
             <Button variant="outline" size="sm" className="mt-3" onClick={openNewModal}>
               <Plus className="w-4 h-4" />
               {t('goals.newGoal')}

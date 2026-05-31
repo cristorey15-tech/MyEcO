@@ -37,6 +37,7 @@
     "status": "Status",
     "actions": "Actions",
     "loading": "Loading...",
+    "more": "more",
     "noData": "No data",
     "all": "All",
     "month": "Month",
@@ -172,7 +173,10 @@
     "customRange": "Custom Range",
     "exportPDF": "Export PDF",
     "exportExcel": "Export Excel",
-    "exportCSV": "Export CSV"
+    "exportCSV": "Export CSV",
+    "avgMonthly": "Avg. monthly",
+    "clickBarHint": "Click on a bar or slice to see details",
+    "categoryComparison": "Category Comparison"
   },
   "tour": {
     "skip": "Skip tour",
@@ -240,6 +244,7 @@
     "importData": "Import data",
     "theme": "Theme",
     "lightMode": "Light Mode",
+    "darkMode": "Dark Mode",
     "about": "About",
     "version": "Version",
     "tour": "Getting Started Tour",
@@ -284,6 +289,7 @@
     "notificationsEnabled": "Notifications enabled",
     "notificationsDisabled": "Notifications disabled",
     "notificationsUnavailable": "Notifications not available in this browser",
+    "darkMode": "Dark Mode",
     "resetData": "Reset all data",
     "resetDataTitle": "Reset All Data",
     "resetDataDesc": "This will permanently delete ALL your data (accounts, transactions, budgets, goals, debts) and reset the app to its initial state. This action cannot be undone.\n\nCategories will be restored to defaults."
@@ -420,5 +426,45 @@
     "maxLength": "Maximum {{max}} characters",
     "accountsMustDiffer": "Accounts must be different",
     "selectRecurringInterval": "Please select a recurring interval"
+  },
+  "fiftyThirtyTwenty": {
+    "categoryType": "Category Type",
+    "need": "Need",
+    "needDesc": "Essential expenses",
+    "want": "Want",
+    "wantDesc": "Discretionary spending",
+    "needs": "Needs",
+    "wants": "Wants",
+    "savings": "Savings",
+    "current": "Current",
+    "ideal": "Ideal",
+    "budgetRule": "50/30/20 Budget Rule",
+    "budgetRuleDesc": "Allocate 50% to needs, 30% to wants, and 20% to savings",
+    "needsOnTrack": "Needs are within the 50% target",
+    "needsOver": "Needs exceed 50% of income",
+    "wantsOnTrack": "Wants are within the 30% target",
+    "wantsOver": "Wants exceed 30% of income",
+    "savingsOnTrack": "Savings are at or above 20% of income",
+    "savingsLow": "Savings are below 20% of income",
+    "ofIncome": "of income"
+  },
+  "shortcuts": {
+    "title": "Keyboard Shortcuts",
+    "subtitle": "Press a key to navigate quickly",
+    "tip": "Shortcuts don't work when typing in input fields.",
+    "dashboard": "Dashboard",
+    "accounts": "Accounts",
+    "transactions": "Transactions",
+    "budgets": "Budgets",
+    "goals": "Goals",
+    "debts": "Debts",
+    "reports": "Reports",
+    "settings": "Settings",
+    "newTransaction": "New Transaction",
+    "showHelp": "Show keyboard shortcuts",
+    "closeModal": "Close modal / dialog",
+    "categoryNav": "Navigation",
+    "categoryActions": "Actions",
+    "categoryGlobal": "Global"
   }
 }

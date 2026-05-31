@@ -61,7 +61,7 @@ export function Tooltip({ content, children, position = 'top', delay = 400, clas
               positions[position]
             )}
           >
-            <div className="bg-gray-900 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+            <div className="bg-gray-900 dark:bg-gray-700 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
               {content}
             </div>
             <div className={cn('absolute w-0 h-0 border-4', arrows[position])} />

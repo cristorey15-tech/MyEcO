@@ -128,8 +128,8 @@ export function Budgets() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('budgets.title')}</h1>
-          <p className="text-sm text-gray-500 mt-1">{formatMonthYear(currentMonth, currentYear)}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('budgets.title')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 mt-1">{formatMonthYear(currentMonth, currentYear)}</p>
         </div>
         <div className="flex items-center gap-2">
           <Tooltip content={t('budgets.newBudget')}>
@@ -189,9 +189,9 @@ export function Budgets() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 dark:text-gray-400" />
         <input
-          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/90 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           placeholder={t('common.search')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -214,8 +214,8 @@ export function Budgets() {
                       {category.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-gray-900">{category.name}</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{category.name}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">
                         {t('budgets.spentOf', { spent: formatCurrency(spent, defaultCurrency), total: formatCurrency(amount, defaultCurrency) })}
                       </p>
                     </div>
@@ -231,11 +231,11 @@ export function Budgets() {
 
                 {/* Progress bar */}
                 <div className="mt-4">
-                  <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
+                  <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 mb-1.5">
                     <span>{formatCurrency(spent, defaultCurrency)}</span>
                     <span>{formatCurrency(amount, defaultCurrency)}</span>
                   </div>
-                  <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-2.5 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden">
                     <div
                       className={cn(
                         'h-full rounded-full transition-all duration-500',
@@ -247,7 +247,7 @@ export function Budgets() {
                 </div>
 
                 <div className="flex items-center justify-between mt-3">
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">
                     {percentage > 100
                       ? `+${formatCurrency(spent - amount, defaultCurrency)} ${t('budgets.overspent').toLowerCase()}`
                       : `${formatCurrency(amount - spent, defaultCurrency)} ${t('budgets.remaining').toLowerCase()}`
@@ -278,9 +278,9 @@ export function Budgets() {
           <div className="col-span-2">
             <Card>
               <CardContent className="text-center py-12">
-                <PiggyBank className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                <p className="text-gray-500">{t('budgets.noBudgets')}</p>
-                <p className="text-sm text-gray-400 mt-1">{t('budgets.createFirst')}</p>
+                <PiggyBank className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" />
+                <p className="text-gray-500 dark:text-gray-400">{t('budgets.noBudgets')}</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 dark:text-gray-400 mt-1">{t('budgets.createFirst')}</p>
                 <Tooltip content={t('budgets.newBudget')}>
                   <Button variant="outline" size="sm" className="mt-3" onClick={openNewBudget}>
                     <Plus className="w-4 h-4" />
