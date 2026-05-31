@@ -62,6 +62,7 @@ export function Transactions() {
     filterRecurring,
     filterAmountMin,
     filterAmountMax,
+    filterTag,
     showFilters,
     currentPage,
   } = transactionFilters;
@@ -77,9 +78,36 @@ export function Transactions() {
     date: new Date().toISOString().split('T')[0],
     description: '',
     notes: '',
+    tags: [] as string[],
     isRecurring: false,
     recurringInterval: '' as RecurringInterval | '',
   });
+
+  const [tagInput, setTagInput] = useState('');
+
+  // Collect all unique tags from transactions for suggestions
+  const allTags = [...new Set((transactions || []).flatMap(t => t.tags || []))].sort();
+
+  const addTag = (tag: string) => {
+    const trimmed = tag.replace(/,/g, '').trim().toLowerCase();
+    if (trimmed && !formData.tags.includes(trimmed)) {
+      setFormData(prev => ({ ...prev, tags: [...prev.tags, trimmed] }));
+    }
+    setTagInput('');
+  };
+
+  const removeTag = (tag: string) => {
+    setFormData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(tagInput);
+    } else if (e.key === 'Backspace' && !tagInput && formData.tags.length > 0) {
+      removeTag(formData.tags[formData.tags.length - 1]);
+    }
+  };
 
   const getAccountCurrency = (accountId: number): string => {
     const account = accounts?.find(a => a.id === accountId);
@@ -100,9 +128,11 @@ export function Transactions() {
       date: new Date().toISOString().split('T')[0],
       description: '',
       notes: '',
+      tags: [],
       isRecurring: false,
       recurringInterval: '' as RecurringInterval | '',
     });
+    setTagInput('');
     setIsModalOpen(true);
   };
 
@@ -119,9 +149,11 @@ export function Transactions() {
       date: new Date(txn.date).toISOString().split('T')[0],
       description: txn.description,
       notes: txn.notes,
+      tags: [...(txn.tags || [])],
       isRecurring: txn.isRecurring,
       recurringInterval: txn.recurringInterval || '',
     });
+    setTagInput('');
     setIsModalOpen(true);
   };
 
@@ -162,7 +194,6 @@ export function Transactions() {
     const data = {
       ...formData,
       date: new Date(formData.date),
-      tags: [],
       isRecurring: formData.isRecurring,
       recurringInterval: formData.isRecurring ? formData.recurringInterval || undefined : undefined,
       createdAt: now,
@@ -193,7 +224,7 @@ export function Transactions() {
   const getCategoryName = (id: number) => categories?.find(c => c.id === id)?.name || '—';
   const getCategoryColor = (id: number) => categories?.find(c => c.id === id)?.color || '#6b7280';
 
-  const hasActiveFilters = Boolean(searchTerm || filterType || filterAccount || filterCategory || filterRecurring || filterAmountMin || filterAmountMax);
+  const hasActiveFilters = Boolean(searchTerm || filterType || filterAccount || filterCategory || filterRecurring || filterAmountMin || filterAmountMax || filterTag);
 
   const filteredTransactions = filterTransactions(transactions || [], {
     searchTerm,
@@ -203,6 +234,7 @@ export function Transactions() {
     filterRecurring,
     filterAmountMin,
     filterAmountMax,
+    filterTag,
     getAccountName,
     getCategoryName,
   }).sort((a, b) => {
@@ -332,6 +364,16 @@ export function Transactions() {
                 ]}
                 placeholder={t('common.all')}
               />
+            </div>
+            {/* Tag filter */}
+            <div className="grid grid-cols-2 gap-3">
+              <Select
+                value={filterTag}
+                onChange={handleFilterChange('filterTag')}
+                options={allTags.map(t => ({ value: t, label: t }))}
+                placeholder={t('common.tags')}
+              />
+              <div />
             </div>
             {/* Amount range filter */}
             <div className="grid grid-cols-2 gap-3">
@@ -478,6 +520,14 @@ export function Transactions() {
                     </button>
                   </span>
                 )}
+                {filterTag && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300">
+                    {t('common.tags')}: {filterTag}
+                    <button onClick={() => setTransactionFilters({ filterTag: '', currentPage: 1 })} className="hover:text-pink-900 dark:hover:text-pink-100 ml-0.5">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
                 {searchTerm && (
                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                     "{searchTerm}"
@@ -554,6 +604,21 @@ export function Transactions() {
                               <Repeat className="w-3 h-3" />
                               {t('transactions.recurring')}
                             </span>
+                          )}
+                          {txn.tags && txn.tags.length > 0 && (
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {txn.tags.slice(0, 3).map(tag => (
+                                <span
+                                  key={tag}
+                                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                              {txn.tags.length > 3 && (
+                                <span className="text-[10px] text-gray-400 dark:text-gray-500">+{txn.tags.length - 3}</span>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -760,6 +825,59 @@ export function Transactions() {
             onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
             placeholder={t('transactions.notesPlaceholder')}
           />
+
+          {/* Tags */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('common.tags')}</label>
+            <div className="flex flex-wrap items-center gap-1.5 mb-1.5 min-h-[28px]">
+              {formData.tags.map(tag => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="hover:text-danger transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagKeyDown}
+                placeholder={formData.tags.length === 0 ? t('transactions.tagsPlaceholder') : t('common.add') + '...'}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+              {/* Suggestions dropdown */}
+              {tagInput && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10 max-h-32 overflow-y-auto">
+                  {allTags
+                    .filter(t => t.includes(tagInput.toLowerCase()) && !formData.tags.includes(t))
+                    .slice(0, 6)
+                    .map(suggestion => (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        onClick={() => addTag(suggestion)}
+                        className="w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              {t('transactions.tagsHint')}
+            </p>
+          </div>
 
           {/* Recurring toggle */}
           <div className="pt-2 border-t border-gray-100 dark:border-gray-700/50">

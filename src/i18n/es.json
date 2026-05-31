@@ -105,7 +105,9 @@
     "recurringInfo": "Se creará una copia automáticamente según el intervalo seleccionado.",
     "sortBy": "Ordenar por",
     "sortAscending": "Ascendente",
-    "sortDescending": "Descendente"
+    "sortDescending": "Descendente",
+    "tagsPlaceholder": "Escribe una etiqueta y presiona Enter",
+    "tagsHint": "Presiona Enter o coma para agregar. Presiona Backspace para eliminar la última."
   },
   "budgets": {
     "title": "Presupuestos",

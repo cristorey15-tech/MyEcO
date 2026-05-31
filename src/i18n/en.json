@@ -105,7 +105,9 @@
     "recurringInfo": "A copy will be created automatically according to the selected interval.",
     "sortBy": "Sort by",
     "sortAscending": "Ascending",
-    "sortDescending": "Descending"
+    "sortDescending": "Descending",
+    "tagsPlaceholder": "Type a tag and press Enter",
+    "tagsHint": "Press Enter or comma to add a tag. Press Backspace to remove the last tag."
   },
   "budgets": {
     "title": "Budgets",

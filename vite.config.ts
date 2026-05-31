@@ -39,7 +39,8 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait',
         lang: 'es',
-        start_url: '/',
+        start_url: '/MyEcO/',
+        scope: '/MyEcO/',
         categories: ['finance', 'productivity'],
         screenshots: [],
         icons: [
