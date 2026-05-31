@@ -277,6 +277,15 @@ export function Settings() {
   const [lastRateUpdate, setLastRateUpdate] = useState<Date | null>(null);
   const [notifSupported, setNotifSupported] = useState(false);
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | 'unavailable'>('default');
+  const [recurringReminders, setRecurringReminders] = useState(() => {
+    try { return localStorage.getItem('myeco-recurring-reminders') !== 'false'; } catch { return true; }
+  });
+  const [daysBefore, setDaysBefore] = useState(() => {
+    try {
+      const val = localStorage.getItem('myeco-recurring-days-before');
+      return val ? Math.max(1, Math.min(7, parseInt(val) || 3)) : 3;
+    } catch { return 3; }
+  });
   const addToast = useToastStore((s) => s.addToast);
 
   // --- Rate Trend state ---
@@ -999,6 +1008,52 @@ export function Settings() {
               </Tooltip>
             )}
           </div>
+
+          {/* Recurring payment reminders configuration */}
+          {notifPermission === 'granted' && (
+            <div className="pt-3 border-t border-gray-100 dark:border-gray-700/30 mt-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('settings.recurringReminders')}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('settings.recurringRemindersDesc')}</p>
+                </div>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={recurringReminders}
+                      onChange={(e) => {
+                        const val = e.target.checked;
+                        setRecurringReminders(val);
+                        try { localStorage.setItem('myeco-recurring-reminders', val ? 'true' : 'false'); } catch {}
+                      }}
+                    />
+                    <div className="w-10 h-6 rounded-full bg-gray-200 dark:bg-gray-600 peer-checked:bg-primary dark:peer-checked:bg-primary transition-colors duration-200" />
+                    <div className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm peer-checked:translate-x-4 transition-transform duration-200" />
+                  </div>
+                </label>
+              </div>
+              {recurringReminders && (
+                <div className="mt-3 flex items-center gap-3">
+                  <label className="text-sm text-gray-700 dark:text-gray-300">{t('settings.remindDaysBefore')}</label>
+                  <select
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-gray-900 dark:text-gray-100"
+                    value={daysBefore}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setDaysBefore(val);
+                      try { localStorage.setItem('myeco-recurring-days-before', String(val)); } catch {}
+                    }}
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7].map(d => (
+                      <option key={d} value={d}>{d} {d === 1 ? t('notifications.dayBefore') : t('notifications.daysBefore')}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

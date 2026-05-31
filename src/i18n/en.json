@@ -289,6 +289,9 @@
     "notificationsEnabled": "Notifications enabled",
     "notificationsDisabled": "Notifications disabled",
     "notificationsUnavailable": "Notifications not available in this browser",
+    "recurringReminders": "Recurring payment reminders",
+    "recurringRemindersDesc": "Get notified before recurring payments are due",
+    "remindDaysBefore": "Remind me",
     "darkMode": "Dark Mode",
     "resetData": "Reset all data",
     "resetDataTitle": "Reset All Data",
@@ -330,7 +333,12 @@
     "budgetExceeded": "Budget exceeded",
     "budgetNearLimit": "Budget near limit",
     "goalAchieved": "Goal achieved",
-    "goalHalfway": "You are on track!"
+    "goalHalfway": "You are on track!",
+    "recurringReminder": "Recurring payment reminder",
+    "recurringToday": "🔔 Today: {{description}} — {{amount}}",
+    "recurringSoon": "⏰ {{description}} due in {{days}} day(s) — {{amount}}",
+    "dayBefore": "day before",
+    "daysBefore": "days before"
   },
   "profile": {
     "title": "Profile",

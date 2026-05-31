@@ -289,6 +289,9 @@
     "notificationsEnabled": "Notificaciones activadas",
     "notificationsDisabled": "Notificaciones desactivadas",
     "notificationsUnavailable": "Notificaciones no disponibles en este navegador",
+    "recurringReminders": "Recordatorios de pagos recurrentes",
+    "recurringRemindersDesc": "Recibe notificaciones antes de que venzan los pagos recurrentes",
+    "remindDaysBefore": "Recordar",
     "resetData": "Borrar todos los datos",
     "resetDataTitle": "Borrar Todos los Datos",
     "resetDataDesc": "Esto eliminará permanentemente TODOS tus datos (cuentas, transacciones, presupuestos, metas, deudas) y reiniciará la app a su estado inicial. Esta acción no se puede deshacer.\n\nLas categorías se restaurarán a las predeterminadas."
@@ -329,7 +332,12 @@
     "budgetExceeded": "Presupuesto excedido",
     "budgetNearLimit": "Presupuesto casi al límite",
     "goalAchieved": "Meta alcanzada",
-    "goalHalfway": "¡Vas por buen camino!"
+    "goalHalfway": "¡Vas por buen camino!",
+    "recurringReminder": "Recordatorio de pago recurrente",
+    "recurringToday": "🔔 Hoy: {{description}} — {{amount}}",
+    "recurringSoon": "⏰ {{description}} vence en {{days}} día(s) — {{amount}}",
+    "dayBefore": "día antes",
+    "daysBefore": "días antes"
   },
   "profile": {
     "title": "Perfil",

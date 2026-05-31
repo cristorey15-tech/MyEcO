@@ -42,6 +42,26 @@ function markNotified(key: string) {
   }
 }
 
+// Check if user opted out of recurring payment reminders
+function areRecurringRemindersEnabled(): boolean {
+  try {
+    return localStorage.getItem('myeco-recurring-reminders') !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+// Get reminder days-before setting (default 3)
+function getReminderDaysBefore(): number {
+  try {
+    const val = localStorage.getItem('myeco-recurring-days-before');
+    if (val) return Math.max(1, Math.min(7, parseInt(val, 10) || 3));
+    return 3;
+  } catch {
+    return 3;
+  }
+}
+
 /**
  * Show a local notification with the given title and body.
  * Respects the "do not disturb" flag and only shows if permission is granted.
@@ -78,6 +98,115 @@ export function showLocalNotification(title: string, body: string, tag?: string)
     markNotified(dedupKey);
   } catch {
     // Notification API may fail in some browsers
+  }
+}
+
+/**
+ * Check recurring transactions for upcoming payments (within configurable days).
+ * This is the key function for recurring payment reminders.
+ */
+export async function checkRecurringPaymentReminders() {
+  if (!hasNotificationPermission()) return;
+  if (!areRecurringRemindersEnabled()) return;
+
+  try {
+    const recurringTxns = await db.transactions
+      .where('isRecurring')
+      .equals(1)
+      .filter(t => t.recurringInterval != null)
+      .toArray();
+
+    if (recurringTxns.length === 0) return;
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const daysBefore = getReminderDaysBefore();
+    const lookAhead = new Date(today.getTime() + daysBefore * 24 * 60 * 60 * 1000);
+
+    const categories = await db.categories.toArray();
+    const accounts = await db.accounts.toArray();
+
+    for (const txn of recurringTxns) {
+      // Calculate the next expected due date based on the interval
+      const nextDue = calculateNextRecurringDate(txn.date, txn.recurringInterval!);
+
+      // Skip if next due date is in the past (should have been processed already)
+      if (nextDue < today) continue;
+      // Skip if outside our look-ahead window
+      if (nextDue > lookAhead) continue;
+
+      const daysUntilDue = Math.ceil((nextDue.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const category = categories.find(c => c.id === txn.categoryId);
+      const account = accounts.find(a => a.id === txn.accountId);
+
+      // Format amount with currency
+      const formattedAmount = formatCurrencySimple(txn.amount, txn.currency);
+      const categoryName = category?.name || 'Sin categoría';
+      const accountName = account?.name || '';
+
+      if (daysUntilDue === 0) {
+        showLocalNotification(
+          `📅 ${txn.description || categoryName}`,
+          `Vence hoy — ${formattedAmount}${accountName ? ` · ${accountName}` : ''}`,
+          `recurring-${txn.id}`
+        );
+      } else {
+        showLocalNotification(
+          `⏰ Recordatorio: ${txn.description || categoryName}`,
+          `Vence en ${daysUntilDue} día${daysUntilDue !== 1 ? 's' : ''} — ${formattedAmount}${accountName ? ` · ${accountName}` : ''}`,
+          `recurring-${txn.id}`
+        );
+      }
+    }
+  } catch {
+    // Silently fail
+  }
+}
+
+/**
+ * Calculate the next future due date for a recurring transaction.
+ * Given the original start date and interval, finds the most recent
+ * occurrence that is either today or in the future.
+ */
+function calculateNextRecurringDate(originalDate: Date, interval: string): Date {
+  const start = new Date(originalDate);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  switch (interval) {
+    case 'daily': {
+      // Every day — next due is today (or today if already passed)
+      const next = new Date(today);
+      next.setHours(start.getHours(), start.getMinutes(), 0, 0);
+      if (next < today) next.setDate(next.getDate() + 1);
+      return next;
+    }
+    case 'weekly': {
+      // Same day of week each week
+      const dayOfWeek = start.getDay();
+      const next = new Date(today);
+      const diff = (dayOfWeek - next.getDay() + 7) % 7;
+      next.setDate(next.getDate() + diff);
+      next.setHours(start.getHours(), start.getMinutes(), 0, 0);
+      if (next < today) next.setDate(next.getDate() + 7);
+      return next;
+    }
+    case 'monthly': {
+      // Same day of month each month
+      const next = new Date(today.getFullYear(), today.getMonth(), start.getDate());
+      next.setHours(start.getHours(), start.getMinutes(), 0, 0);
+      if (next < today) next.setMonth(next.getMonth() + 1);
+      return next;
+    }
+    case 'yearly': {
+      // Same month/day each year
+      const next = new Date(today.getFullYear(), start.getMonth(), start.getDate());
+      next.setHours(start.getHours(), start.getMinutes(), 0, 0);
+      if (next < today) next.setFullYear(next.getFullYear() + 1);
+      return next;
+    }
+    default:
+      return today;
   }
 }
 
@@ -197,11 +326,17 @@ export async function runAllPeriodicChecks() {
       checkDebtReminders(),
       checkBudgetAlerts(),
       checkGoalMilestones(),
+      checkRecurringPaymentReminders(),
     ]);
   } catch {
     // Silently fail — non-critical feature
   }
 }
+
+/**
+ * Also export the recurring-specific check functions for use in App.tsx
+ */
+export { areRecurringRemindersEnabled, getReminderDaysBefore };
 
 function formatCurrencySimple(amount: number, currency?: string): string {
   return new Intl.NumberFormat('es-MX', {
