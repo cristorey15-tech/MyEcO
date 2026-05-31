@@ -1,6 +1,16 @@
 import { useEffect, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+interface Shortcut {
+  key: string;
+  shift?: boolean;
+  ctrl?: boolean;
+  meta?: boolean;
+  action: () => void;
+  description: string;
+  category: 'navigation' | 'action' | 'global';
+}
+
 export function useKeyboardShortcuts() {
   const navigate = useNavigate();
   const [helpOpen, setHelpOpen] = useState(false);
@@ -19,22 +29,22 @@ export function useKeyboardShortcuts() {
   }, []);
 
   useEffect(() => {
-    const shortcuts = [
+    const shortcuts: Shortcut[] = [
       // Navigation
-      { key: 'd', action: () => navigate('/'), description: 'shortcuts.dashboard', category: 'navigation' as const },
-      { key: 'a', action: () => navigate('/accounts'), description: 'shortcuts.accounts', category: 'navigation' as const },
-      { key: 't', action: () => navigate('/transactions'), description: 'shortcuts.transactions', category: 'navigation' as const },
-      { key: 'b', action: () => navigate('/budgets'), description: 'shortcuts.budgets', category: 'navigation' as const },
-      { key: 'g', action: () => navigate('/goals'), description: 'shortcuts.goals', category: 'navigation' as const },
-      { key: 'l', action: () => navigate('/debts'), description: 'shortcuts.debts', category: 'navigation' as const },
-      { key: 'r', action: () => navigate('/reports'), description: 'shortcuts.reports', category: 'navigation' as const },
-      { key: 's', action: () => navigate('/settings'), description: 'shortcuts.settings', category: 'navigation' as const },
+      { key: 'd', action: () => navigate('/'), description: 'shortcuts.dashboard', category: 'navigation' },
+      { key: 'a', action: () => navigate('/accounts'), description: 'shortcuts.accounts', category: 'navigation' },
+      { key: 't', action: () => navigate('/transactions'), description: 'shortcuts.transactions', category: 'navigation' },
+      { key: 'b', action: () => navigate('/budgets'), description: 'shortcuts.budgets', category: 'navigation' },
+      { key: 'g', action: () => navigate('/goals'), description: 'shortcuts.goals', category: 'navigation' },
+      { key: 'l', action: () => navigate('/debts'), description: 'shortcuts.debts', category: 'navigation' },
+      { key: 'r', action: () => navigate('/reports'), description: 'shortcuts.reports', category: 'navigation' },
+      { key: 's', action: () => navigate('/settings'), description: 'shortcuts.settings', category: 'navigation' },
       // Actions
-      { key: 'n', action: () => navigate('/transactions'), description: 'shortcuts.newTransaction', category: 'action' as const },
+      { key: 'n', action: () => navigate('/transactions'), description: 'shortcuts.newTransaction', category: 'action' },
       // Global
-      { key: '?', shift: true as const, action: () => setHelpOpen(prev => !prev), description: 'shortcuts.showHelp', category: 'global' as const },
-      { key: 'Escape', action: () => setHelpOpen(false), description: '', category: 'global' as const },
-    ] as const;
+      { key: '?', shift: true, action: () => setHelpOpen(prev => !prev), description: 'shortcuts.showHelp', category: 'global' },
+      { key: 'Escape', action: () => setHelpOpen(false), description: '', category: 'global' },
+    ];
 
     const handler = (e: KeyboardEvent) => {
       // Don't fire shortcuts when typing in inputs

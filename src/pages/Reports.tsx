@@ -422,7 +422,7 @@ export function Reports() {
                       name={t('common.income')}
                       fill="#059669"
                       radius={[4, 4, 0, 0]}
-                      onClick={(data) => handleMonthClick(data?.monthNum)}
+                      onClick={(data: any) => handleMonthClick(data?.monthNum)}
                       cursor="pointer"
                     />
                   )}
@@ -432,7 +432,7 @@ export function Reports() {
                       name={t('common.expense')}
                       fill="#dc2626"
                       radius={[4, 4, 0, 0]}
-                      onClick={(data) => handleMonthClick(data?.monthNum)}
+                      onClick={(data: any) => handleMonthClick(data?.monthNum)}
                       cursor="pointer"
                     />
                   )}
@@ -443,7 +443,7 @@ export function Reports() {
                       fill="#7c3aed"
                       radius={[4, 4, 0, 0]}
                       opacity={0.6}
-                      onClick={(data) => handleMonthClick(data?.monthNum)}
+                      onClick={(data: any) => handleMonthClick(data?.monthNum)}
                       cursor="pointer"
                     />
                   )}
@@ -546,7 +546,7 @@ export function Reports() {
                       dataKey="net"
                       name={t('reports.cashFlow')}
                       radius={[4, 4, 0, 0]}
-                      onClick={(data) => handleMonthClick(data?.monthNum)}
+                      onClick={(data: any) => handleMonthClick(data?.monthNum)}
                       cursor="pointer"
                     >
                       {convertedMonthlyData.map((entry, idx) => (
