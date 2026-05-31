@@ -62,6 +62,33 @@ function getReminderDaysBefore(): number {
   }
 }
 
+// Check if user opted out of budget alerts
+function areBudgetAlertsEnabled(): boolean {
+  try {
+    return localStorage.getItem('myeco-budget-alerts') !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+// Check if user opted out of goal milestones
+function areGoalMilestonesEnabled(): boolean {
+  try {
+    return localStorage.getItem('myeco-goal-milestones') !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+// Check if user opted out of debt reminders
+function areDebtRemindersEnabled(): boolean {
+  try {
+    return localStorage.getItem('myeco-debt-reminders') !== 'false';
+  } catch {
+    return true;
+  }
+}
+
 /**
  * Show a local notification with the given title and body.
  * Respects the "do not disturb" flag and only shows if permission is granted.
@@ -216,6 +243,7 @@ function calculateNextRecurringDate(originalDate: Date, interval: string): Date 
  */
 export async function checkDebtReminders() {
   if (!hasNotificationPermission()) return;
+  if (!areDebtRemindersEnabled()) return;
 
   const debts = await db.debts.toArray();
   const now = new Date();
@@ -255,6 +283,7 @@ export async function checkDebtReminders() {
  */
 export async function checkBudgetAlerts() {
   if (!hasNotificationPermission()) return;
+  if (!areBudgetAlertsEnabled()) return;
 
   const budgets = await db.budgets.toArray();
   const now = new Date();
@@ -288,6 +317,7 @@ export async function checkBudgetAlerts() {
  */
 export async function checkGoalMilestones() {
   if (!hasNotificationPermission()) return;
+  if (!areGoalMilestonesEnabled()) return;
 
   const goals = await db.goals.toArray();
 

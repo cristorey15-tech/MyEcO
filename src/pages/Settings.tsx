@@ -286,6 +286,15 @@ export function Settings() {
       return val ? Math.max(1, Math.min(7, parseInt(val) || 3)) : 3;
     } catch { return 3; }
   });
+  const [budgetAlerts, setBudgetAlerts] = useState(() => {
+    try { return localStorage.getItem('myeco-budget-alerts') !== 'false'; } catch { return true; }
+  });
+  const [goalMilestones, setGoalMilestones] = useState(() => {
+    try { return localStorage.getItem('myeco-goal-milestones') !== 'false'; } catch { return true; }
+  });
+  const [debtReminders, setDebtReminders] = useState(() => {
+    try { return localStorage.getItem('myeco-debt-reminders') !== 'false'; } catch { return true; }
+  });
   const addToast = useToastStore((s) => s.addToast);
 
   // --- Rate Trend state ---
@@ -1009,24 +1018,25 @@ export function Settings() {
             )}
           </div>
 
-          {/* Recurring payment reminders configuration */}
+          {/* Notification type toggles (only visible when permission is granted) */}
           {notifPermission === 'granted' && (
-            <div className="pt-3 border-t border-gray-100 dark:border-gray-700/30 mt-3">
+            <div className="pt-3 border-t border-gray-100 dark:border-gray-700/30 mt-3 space-y-3">
+              {/* Budget alerts */}
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('settings.recurringReminders')}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('settings.recurringRemindersDesc')}</p>
+                <div className="flex-1 min-w-0 pr-3">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('settings.budgetAlerts')}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{t('settings.budgetAlertsDesc')}</p>
                 </div>
-                <label className="flex items-center gap-3 cursor-pointer">
+                <label className="flex items-center cursor-pointer flex-shrink-0">
                   <div className="relative">
                     <input
                       type="checkbox"
                       className="sr-only peer"
-                      checked={recurringReminders}
+                      checked={budgetAlerts}
                       onChange={(e) => {
                         const val = e.target.checked;
-                        setRecurringReminders(val);
-                        try { localStorage.setItem('myeco-recurring-reminders', val ? 'true' : 'false'); } catch {}
+                        setBudgetAlerts(val);
+                        try { localStorage.setItem('myeco-budget-alerts', val ? 'true' : 'false'); } catch {}
                       }}
                     />
                     <div className="w-10 h-6 rounded-full bg-gray-200 dark:bg-gray-600 peer-checked:bg-primary dark:peer-checked:bg-primary transition-colors duration-200" />
@@ -1034,24 +1044,98 @@ export function Settings() {
                   </div>
                 </label>
               </div>
-              {recurringReminders && (
-                <div className="mt-3 flex items-center gap-3">
-                  <label className="text-sm text-gray-700 dark:text-gray-300">{t('settings.remindDaysBefore')}</label>
-                  <select
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-gray-900 dark:text-gray-100"
-                    value={daysBefore}
-                    onChange={(e) => {
-                      const val = Number(e.target.value);
-                      setDaysBefore(val);
-                      try { localStorage.setItem('myeco-recurring-days-before', String(val)); } catch {}
-                    }}
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7].map(d => (
-                      <option key={d} value={d}>{d} {d === 1 ? t('notifications.dayBefore') : t('notifications.daysBefore')}</option>
-                    ))}
-                  </select>
+
+              {/* Goal milestones */}
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0 pr-3">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('settings.goalMilestones')}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{t('settings.goalMilestonesDesc')}</p>
                 </div>
-              )}
+                <label className="flex items-center cursor-pointer flex-shrink-0">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={goalMilestones}
+                      onChange={(e) => {
+                        const val = e.target.checked;
+                        setGoalMilestones(val);
+                        try { localStorage.setItem('myeco-goal-milestones', val ? 'true' : 'false'); } catch {}
+                      }}
+                    />
+                    <div className="w-10 h-6 rounded-full bg-gray-200 dark:bg-gray-600 peer-checked:bg-primary dark:peer-checked:bg-primary transition-colors duration-200" />
+                    <div className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm peer-checked:translate-x-4 transition-transform duration-200" />
+                  </div>
+                </label>
+              </div>
+
+              {/* Debt reminders */}
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0 pr-3">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('settings.debtReminders')}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{t('settings.debtRemindersDesc')}</p>
+                </div>
+                <label className="flex items-center cursor-pointer flex-shrink-0">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={debtReminders}
+                      onChange={(e) => {
+                        const val = e.target.checked;
+                        setDebtReminders(val);
+                        try { localStorage.setItem('myeco-debt-reminders', val ? 'true' : 'false'); } catch {}
+                      }}
+                    />
+                    <div className="w-10 h-6 rounded-full bg-gray-200 dark:bg-gray-600 peer-checked:bg-primary dark:peer-checked:bg-primary transition-colors duration-200" />
+                    <div className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm peer-checked:translate-x-4 transition-transform duration-200" />
+                  </div>
+                </label>
+              </div>
+
+              {/* Recurring payment reminders — separator and toggle */}
+              <div className="pt-3 border-t border-gray-100 dark:border-gray-700/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0 pr-3">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('settings.recurringReminders')}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{t('settings.recurringRemindersDesc')}</p>
+                  </div>
+                  <label className="flex items-center cursor-pointer flex-shrink-0">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={recurringReminders}
+                        onChange={(e) => {
+                          const val = e.target.checked;
+                          setRecurringReminders(val);
+                          try { localStorage.setItem('myeco-recurring-reminders', val ? 'true' : 'false'); } catch {}
+                        }}
+                      />
+                      <div className="w-10 h-6 rounded-full bg-gray-200 dark:bg-gray-600 peer-checked:bg-primary dark:peer-checked:bg-primary transition-colors duration-200" />
+                      <div className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm peer-checked:translate-x-4 transition-transform duration-200" />
+                    </div>
+                  </label>
+                </div>
+                {recurringReminders && (
+                  <div className="mt-3 flex items-center gap-3">
+                    <label className="text-sm text-gray-700 dark:text-gray-300">{t('settings.remindDaysBefore')}</label>
+                    <select
+                      className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-gray-900 dark:text-gray-100"
+                      value={daysBefore}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setDaysBefore(val);
+                        try { localStorage.setItem('myeco-recurring-days-before', String(val)); } catch {}
+                      }}
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7].map(d => (
+                        <option key={d} value={d}>{d} {d === 1 ? t('notifications.dayBefore') : t('notifications.daysBefore')}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
