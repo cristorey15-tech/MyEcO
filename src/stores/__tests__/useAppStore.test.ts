@@ -8,13 +8,15 @@ describe('useAppStore', () => {
       sidebarOpen: true,
       isHydrated: false,
       tourCompleted: false,
-      setupCompleted: false,
-      transactionFilters: {
+      setupCompleted: false,        transactionFilters: {
         searchTerm: '',
         filterType: '',
         filterAccount: '',
         filterCategory: '',
         filterRecurring: '',
+        filterAmountMin: '',
+        filterAmountMax: '',
+        filterTag: '',
         showFilters: false,
         currentPage: 1,
       },

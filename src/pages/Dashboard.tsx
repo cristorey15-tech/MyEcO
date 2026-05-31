@@ -13,7 +13,7 @@ import { Tooltip as UITooltip } from '@/components/ui/tooltip';
 import {
   ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, TrendingDown, Plus,
   ArrowLeftRight, AlertTriangle, BellRing, CheckCircle, House, ShoppingBag,
-  PiggyBank, Settings2, GripVertical
+  PiggyBank, Settings2, GripVertical, Target
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToastStore } from '@/stores/useToastStore';
@@ -756,7 +756,7 @@ export function Dashboard() {
           {/* Individual goals */}
           <div className="space-y-3">
             {goals.slice(0, 5).map((goal) => {
-              const pct = calculatePercentage(goal.currentAmount, goal.targetAmount);
+              const pct = goal.targetAmount > 0 ? Math.round((goal.currentAmount / goal.targetAmount) * 100) : 0;
               const isAchieved = goal.currentAmount >= goal.targetAmount;
               return (
                 <div
@@ -774,7 +774,7 @@ export function Dashboard() {
                         {goal.name}
                       </span>
                       {isAchieved && (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-secondary flex-shrink-0" />
+                        <CheckCircle className="w-3.5 h-3.5 text-secondary flex-shrink-0" />
                       )}
                     </div>
                     <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 flex-shrink-0 ml-2">
@@ -885,7 +885,7 @@ function Header({
       <div className="flex items-center gap-2">
         {onCustomize && (
           <UITooltip content={t('dashboardWidgets.customize')}>
-            <Button variant="outline" size="icon" onClick={onCustomize}>
+            <Button variant="outline" size="sm" onClick={onCustomize}>
               <GripVertical className="w-4 h-4" />
             </Button>
           </UITooltip>
