@@ -20,7 +20,16 @@ export function computeBudgetComparison(
 ): BudgetComparisonItem[] {
   if (budgets.length === 0) return [];
 
-  return budgets
+  // Deduplicate by categoryId (keep highest amount as canonical)
+  const deduped = new Map<number, Budget>();
+  for (const b of budgets) {
+    const existing = deduped.get(b.categoryId);
+    if (!existing || b.amount > existing.amount) {
+      deduped.set(b.categoryId, b);
+    }
+  }
+
+  return Array.from(deduped.values())
     .map((b) => {
       const spent = spendingByCategory[b.categoryId] || 0;
       const cat = categories.find((c) => c.id === b.categoryId);

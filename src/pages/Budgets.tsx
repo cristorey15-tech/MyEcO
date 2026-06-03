@@ -71,13 +71,18 @@ export function Budgets() {
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
     const now = new Date();
-    const existing = budgets?.find(b => b.categoryId === formCategoryId);
+    const existing = budgets?.filter(b => b.categoryId === formCategoryId) || [];
 
-    if (existing) {
-      await db.budgets.update(existing.id!, {
+    if (existing.length > 0) {
+      // Update the first one and delete any duplicates
+      await db.budgets.update(existing[0].id!, {
         amount: formAmount,
         spent: spentAmounts[formCategoryId] || 0,
       });
+      // Clean up duplicate budget rows for same category
+      if (existing.length > 1) {
+        await Promise.all(existing.slice(1).map(b => db.budgets.delete(b.id!)));
+      }
     } else {
       await db.budgets.add({
         categoryId: formCategoryId,
@@ -92,9 +97,10 @@ export function Budgets() {
   };
 
   const handleDelete = async (categoryId: number) => {
-    const budget = budgets?.find(b => b.categoryId === categoryId);
-    if (budget?.id) {
-      await db.budgets.delete(budget.id);
+    // Delete ALL budgets for this category+month+year (handles duplicates)
+    const toDelete = budgets?.filter(b => b.categoryId === categoryId) || [];
+    if (toDelete.length > 0) {
+      await Promise.all(toDelete.map(b => db.budgets.delete(b.id!)));
     }
   };
 
