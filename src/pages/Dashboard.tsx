@@ -226,11 +226,15 @@ export function Dashboard() {
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={visibleWidgetIds} strategy={verticalListSortingStrategy}>
           <div className="space-y-6">
-            {visibleWidgets.map((w) => (
-              <DashboardWidget key={w.id} id={w.id}>
-                {renderWidget(w.id)}
-              </DashboardWidget>
-            ))}
+            {visibleWidgets.map((w) => {
+              const content = renderWidget(w.id);
+              if (!content) return null;
+              return (
+                <DashboardWidget key={w.id} id={w.id}>
+                  {content}
+                </DashboardWidget>
+              );
+            })}
           </div>
         </SortableContext>
       </DndContext>
