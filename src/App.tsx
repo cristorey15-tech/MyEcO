@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { Layout } from '@/components/layout/Layout';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { PageTransition } from '@/components/ui/page-transition';
 import { Tour } from '@/components/onboarding/Tour';
 import { LockScreen } from '@/components/auth/LockScreen';
@@ -60,7 +61,9 @@ function AnimatedRoutes() {
   return (
       <LockScreen>
         {/* Tour persists across route changes — outside AnimatePresence so it doesn't remount */}
-        <Tour />
+        <ErrorBoundary fallbackTitle="Error en la aplicación">
+          <Tour />
+        </ErrorBoundary>
         {/* Keyboard shortcuts help modal */}
         <KeyboardShortcuts isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
       <AnimatePresence mode="wait">

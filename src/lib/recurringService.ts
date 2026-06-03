@@ -34,17 +34,25 @@ async function shouldCreateNewInstance(txn: Transaction): Promise<boolean> {
   if (!txn.recurringInterval) return false;
 
   // Find the most recent instance of this recurring series
-  // We identify series by matching description + accountId + categoryId + isRecurring flag
-  // For the original recurring template, we check its own createdAt
-  const lastInstance = await db.transactions
-    .where({ isRecurring: 0 }) // Look for non-recurring instances
-    .filter(t =>
-      t.description === txn.description &&
-      t.accountId === txn.accountId &&
-      t.categoryId === txn.categoryId
-    )
-    .reverse()
-    .first();
+  // If templateId exists, use it for precise matching; otherwise fall back to heuristic
+  let lastInstance: Transaction | undefined;
+  if (txn.templateId) {
+    lastInstance = await db.transactions
+      .where('templateId')
+      .equals(txn.templateId)
+      .reverse()
+      .first();
+  } else {
+    lastInstance = await db.transactions
+      .where({ isRecurring: 0 })
+      .filter(t =>
+        t.description === txn.description &&
+        t.accountId === txn.accountId &&
+        t.categoryId === txn.categoryId
+      )
+      .reverse()
+      .first();
+  }
 
   // Use the last instance date, or the original transaction date
   const lastDate = lastInstance ? new Date(lastInstance.date) : new Date(txn.date);
@@ -87,6 +95,7 @@ async function createRecurringInstance(template: Transaction): Promise<void> {
     tags: [...template.tags],
     isRecurring: false, // This instance is not itself recurring
     recurringInterval: undefined,
+    templateId: template.templateId ?? template.id!,
     createdAt: now,
     updatedAt: now,
   };

@@ -28,6 +28,7 @@ export interface Transaction {
   tags: string[];
   isRecurring: boolean;
   recurringInterval?: RecurringInterval;
+  templateId?: number;
   createdAt: Date;
   updatedAt: Date;
 }

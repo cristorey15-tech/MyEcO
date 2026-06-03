@@ -51,6 +51,17 @@ interface AppState {
   // Security questions for PIN recovery
   securityQuestions: { question: string; answerHash: string }[];
   setSecurityQuestions: (questions: { question: string; answerHash: string }[]) => void;
+  // Notification preferences
+  budgetAlerts: boolean;
+  setBudgetAlerts: (enabled: boolean) => void;
+  goalMilestones: boolean;
+  setGoalMilestones: (enabled: boolean) => void;
+  debtReminders: boolean;
+  setDebtReminders: (enabled: boolean) => void;
+  recurringReminders: boolean;
+  setRecurringReminders: (enabled: boolean) => void;
+  reminderDaysBefore: number;
+  setReminderDaysBefore: (days: number) => void;
 }
 
 const defaultTransactionFilters: TransactionFilterState = {
@@ -83,6 +94,11 @@ export const useAppStore = create<AppState>()(
       isLocked: false,
       securityQuestions: [],
       darkMode: false,
+      budgetAlerts: true,
+      goalMilestones: true,
+      debtReminders: true,
+      recurringReminders: true,
+      reminderDaysBefore: 3,
 
       setDefaultCurrency: (currency) => set({ defaultCurrency: currency }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
@@ -104,6 +120,11 @@ export const useAppStore = create<AppState>()(
         isLocked: false,
         securityQuestions: [],
         darkMode: false,
+        budgetAlerts: true,
+        goalMilestones: true,
+        debtReminders: true,
+        recurringReminders: true,
+        reminderDaysBefore: 3,
       }),
       setUserName: (name) => set({ userName: name }),
       setPinHash: (hash) => set({ pinHash: hash }),
@@ -113,6 +134,26 @@ export const useAppStore = create<AppState>()(
       setIsLocked: (locked) => set({ isLocked: locked }),
       setDarkMode: (dark) => set({ darkMode: dark }),
       setSecurityQuestions: (questions) => set({ securityQuestions: questions }),
+      setBudgetAlerts: (enabled) => set(() => {
+        try { localStorage.setItem('myeco-budget-alerts', String(enabled)); } catch { /* ignore */ }
+        return { budgetAlerts: enabled };
+      }),
+      setGoalMilestones: (enabled) => set(() => {
+        try { localStorage.setItem('myeco-goal-milestones', String(enabled)); } catch { /* ignore */ }
+        return { goalMilestones: enabled };
+      }),
+      setDebtReminders: (enabled) => set(() => {
+        try { localStorage.setItem('myeco-debt-reminders', String(enabled)); } catch { /* ignore */ }
+        return { debtReminders: enabled };
+      }),
+      setRecurringReminders: (enabled) => set(() => {
+        try { localStorage.setItem('myeco-recurring-reminders', String(enabled)); } catch { /* ignore */ }
+        return { recurringReminders: enabled };
+      }),
+      setReminderDaysBefore: (days) => set(() => {
+        try { localStorage.setItem('myeco-recurring-days-before', String(days)); } catch { /* ignore */ }
+        return { reminderDaysBefore: days };
+      }),
       setTransactionFilters: (filters) => set((state) => ({
         transactionFilters: { ...state.transactionFilters, ...filters },
       })),

@@ -14,10 +14,7 @@ import {
   PiggyBank,
   ArrowRight,
   Sparkles,
-  Loader2,
-  Bell,
   Fingerprint,
-  Check,
   Repeat,
   BarChart3,
   Target,
@@ -70,15 +67,7 @@ export function Welcome() {
 
   const [step, setStep] = useState<'welcome' | 'loading'>('welcome');
   const [loadingMessage, setLoadingMessage] = useState('');
-  const [biometricSupported, setBiometricSupported] = useState(false);
-
-  useEffect(() => {
-    // Check if WebAuthn / biometric is supported
-    setBiometricSupported(
-      typeof window !== 'undefined' &&
-      typeof PublicKeyCredential !== 'undefined'
-    );
-  }, []);
+  const biometricSupported = typeof window !== 'undefined' && typeof PublicKeyCredential !== 'undefined';
 
   // Redirect if already completed
   useEffect(() => {

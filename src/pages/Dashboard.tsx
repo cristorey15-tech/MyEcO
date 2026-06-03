@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useConvertedBalances } from '@/hooks/useConvertedBalances';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { DndContext, closestCenter, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { db, getAccountBalance } from '@/lib/db';
+import { db } from '@/lib/db';
 import { formatCurrency, formatDate, batchConvertAmounts, cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/useAppStore';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -13,7 +14,7 @@ import { Tooltip as UITooltip } from '@/components/ui/tooltip';
 import {
   ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, TrendingDown, Plus,
   ArrowLeftRight, AlertTriangle, BellRing, CheckCircle, House, ShoppingBag,
-  PiggyBank, Settings2, GripVertical, Target
+  PiggyBank, GripVertical, Target
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToastStore } from '@/stores/useToastStore';
@@ -80,10 +81,10 @@ export function Dashboard() {
     });
   }
 
+  // Balance data via shared hook (replaces duplicated loading logic)
+  const { balances, convertedBalances, totalBalance, ratesReady } = useConvertedBalances(accounts);
+
   // State for data processing
-  const [balances, setBalances] = useState<Record<number, number>>({});
-  const [convertedBalances, setConvertedBalances] = useState<Record<number, number>>({});
-  const [ratesReady, setRatesReady] = useState(false);
   const [monthlySummary, setMonthlySummary] = useState({ income: 0, expense: 0 });
   const [convertedSpendingData, setConvertedSpendingData] = useState<{name: string; value: number; color: string; categoryId: number}[]>([]);
   const [budgetComparison, setBudgetComparison] = useState<{
@@ -98,46 +99,6 @@ export function Dashboard() {
 
   const addToast = useToastStore((s) => s.addToast);
   const notifiedOverspent = useRef(false);
-
-  // Batch-convert account balances
-  useEffect(() => {
-    if (!accounts || accounts.length === 0) return;
-    let cancelled = false;
-    (async () => {
-      const count = await db.exchangeRates.count();
-      if (count === 0) {
-        const { fetchAllRates } = await import('@/lib/exchangeRateService');
-        const result = await fetchAllRates();
-        if (!result.success) {
-          console.warn('Auto-fetch rates failed:', result.errors.join(', '));
-        }
-      }
-      if (cancelled) return;
-      const results = await Promise.all(
-        accounts.map(async (acc) => {
-          const balance = await getAccountBalance(acc.id!);
-          return { id: acc.id!, balance, currency: acc.currency };
-        })
-      );
-      if (cancelled) return;
-      const newBalances: Record<number, number> = {};
-      results.forEach(r => { newBalances[r.id] = r.balance; });
-      setBalances(newBalances);
-      const converted = await batchConvertAmounts(
-        results.map(r => ({ amount: r.balance, from: r.currency })),
-        defaultCurrency
-      );
-      if (cancelled) return;
-      const newConverted: Record<number, number> = {};
-      results.forEach((r, i) => { newConverted[r.id] = converted[i]; });
-      setConvertedBalances(newConverted);
-      setRatesReady(true);
-    })().catch(err => {
-      console.error('Error loading account balances:', err);
-      setRatesReady(true);
-    });
-    return () => { cancelled = true; };
-  }, [accounts, defaultCurrency]);
 
   // Process monthly transactions
   useEffect(() => {
@@ -209,7 +170,6 @@ export function Dashboard() {
     }).catch(err => console.error('Error converting monthly transactions:', err));
   }, [monthlyTransactions, defaultCurrency, categories, monthlyBudgets]);
 
-  const totalBalance = Object.values(convertedBalances).reduce((sum, b) => sum + b, 0);
   const spendingData = convertedSpendingData;
 
   const getCategoryName = (id: number) => categories?.find(c => c.id === id)?.name || '—';

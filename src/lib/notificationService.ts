@@ -1,4 +1,6 @@
 import { db, getBudgetSpent } from './db';
+import i18n from '@/lib/i18n';
+import { useAppStore } from '@/stores/useAppStore';
 
 /**
  * Request notification permission from the browser.
@@ -42,50 +44,38 @@ function markNotified(key: string) {
   }
 }
 
-// Check if user opted out of recurring payment reminders
+// Read notification preferences from Zustand store (works outside React)
+function getNotifPrefs() {
+  return useAppStore.getState();
+}
+
 function areRecurringRemindersEnabled(): boolean {
-  try {
-    return localStorage.getItem('myeco-recurring-reminders') !== 'false';
-  } catch {
-    return true;
-  }
+  return getNotifPrefs().recurringReminders;
 }
 
-// Get reminder days-before setting (default 3)
 function getReminderDaysBefore(): number {
-  try {
-    const val = localStorage.getItem('myeco-recurring-days-before');
-    if (val) return Math.max(1, Math.min(7, parseInt(val, 10) || 3));
-    return 3;
-  } catch {
-    return 3;
-  }
+  return getNotifPrefs().reminderDaysBefore;
 }
 
-// Check if user opted out of budget alerts
 function areBudgetAlertsEnabled(): boolean {
-  try {
-    return localStorage.getItem('myeco-budget-alerts') !== 'false';
-  } catch {
-    return true;
-  }
+  return getNotifPrefs().budgetAlerts;
 }
 
-// Check if user opted out of goal milestones
 function areGoalMilestonesEnabled(): boolean {
-  try {
-    return localStorage.getItem('myeco-goal-milestones') !== 'false';
-  } catch {
-    return true;
-  }
+  return getNotifPrefs().goalMilestones;
 }
 
-// Check if user opted out of debt reminders
 function areDebtRemindersEnabled(): boolean {
+  return getNotifPrefs().debtReminders;
+}
+
+// Helper to get a translated string with fallback
+function t(key: string, fallback: string): string {
   try {
-    return localStorage.getItem('myeco-debt-reminders') !== 'false';
+    const result = i18n.t(key);
+    return result === key ? fallback : result;
   } catch {
-    return true;
+    return fallback;
   }
 }
 
@@ -168,19 +158,19 @@ export async function checkRecurringPaymentReminders() {
 
       // Format amount with currency
       const formattedAmount = formatCurrencySimple(txn.amount, txn.currency);
-      const categoryName = category?.name || 'Sin categoría';
+      const categoryName = category?.name || t('common.uncategorized', 'Sin categoría');
       const accountName = account?.name || '';
 
       if (daysUntilDue === 0) {
         showLocalNotification(
           `📅 ${txn.description || categoryName}`,
-          `Vence hoy — ${formattedAmount}${accountName ? ` · ${accountName}` : ''}`,
+          `${t('notifications.dueToday', 'Vence hoy')} — ${formattedAmount}${accountName ? ` · ${accountName}` : ''}`,
           `recurring-${txn.id}`
         );
       } else {
         showLocalNotification(
-          `⏰ Recordatorio: ${txn.description || categoryName}`,
-          `Vence en ${daysUntilDue} día${daysUntilDue !== 1 ? 's' : ''} — ${formattedAmount}${accountName ? ` · ${accountName}` : ''}`,
+          `${t('notifications.reminder', 'Recordatorio')}: ${txn.description || categoryName}`,
+          `${t('notifications.dueIn', 'Vence en')} ${daysUntilDue} ${daysUntilDue !== 1 ? t('notifications.days', 'días') : t('notifications.day', 'día')} — ${formattedAmount}${accountName ? ` · ${accountName}` : ''}`,
           `recurring-${txn.id}`
         );
       }
@@ -259,10 +249,10 @@ export async function checkDebtReminders() {
     // Due today
     if (dueDay.getTime() === today.getTime()) {
       showLocalNotification(
-        `📅 Vence hoy: ${debt.name}`,
+        `${t('notifications.dueToday', '📅 Vence hoy')}: ${debt.name}`,
         debt.type === 'owed'
-          ? `Debes pagar ${formatCurrencySimple(debt.remainingAmount, debt.currency)}`
-          : `Te deben pagar ${formatCurrencySimple(debt.remainingAmount, debt.currency)}`,
+          ? `${t('notifications.youOwe', 'Debes pagar')} ${formatCurrencySimple(debt.remainingAmount, debt.currency)}`
+          : `${t('notifications.owedToYou', 'Te deben pagar')} ${formatCurrencySimple(debt.remainingAmount, debt.currency)}`,
         `debt-${debt.id}`
       );
     }
@@ -270,8 +260,8 @@ export async function checkDebtReminders() {
     else if (dueDay.getTime() > today.getTime() && dueDay.getTime() <= threeDaysFromNow.getTime()) {
       const daysLeft = Math.ceil((dueDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       showLocalNotification(
-        `⏰ Recordatorio: ${debt.name}`,
-        `Vence en ${daysLeft} día${daysLeft !== 1 ? 's' : ''} — ${formatCurrencySimple(debt.remainingAmount, debt.currency)}`,
+        `${t('notifications.reminder', '⏰ Recordatorio')}: ${debt.name}`,
+        `${t('notifications.dueIn', 'Vence en')} ${daysLeft} ${daysLeft !== 1 ? t('notifications.days', 'días') : t('notifications.day', 'día')} — ${formatCurrencySimple(debt.remainingAmount, debt.currency)}`,
         `debt-${debt.id}`
       );
     }
@@ -298,14 +288,14 @@ export async function checkBudgetAlerts() {
 
     if (spent >= budget.amount && budget.amount > 0) {
       showLocalNotification(
-        '🚨 Presupuesto excedido',
-        `Has gastado ${formatCurrencySimple(spent)} de ${formatCurrencySimple(budget.amount)} en esta categoría`,
+        t('notifications.budgetExceeded', '🚨 Presupuesto excedido'),
+        `${t('notifications.spent', 'Has gastado')} ${formatCurrencySimple(spent)} ${t('notifications.of', 'de')} ${formatCurrencySimple(budget.amount)} ${t('notifications.inCategory', 'en esta categoría')}`,
         `budget-${budget.id}`
       );
     } else if (percentage >= 80 && percentage < 100) {
       showLocalNotification(
-        '⚠️ Presupuesto casi al límite',
-        `Has usado el ${Math.round(percentage)}% de tu presupuesto (${formatCurrencySimple(spent)} de ${formatCurrencySimple(budget.amount)})`,
+        t('notifications.budgetNearLimit', '⚠️ Presupuesto casi al límite'),
+        `${t('notifications.usedPercent', 'Has usado el')} ${Math.round(percentage)}% ${t('notifications.of', 'de')} ${t('notifications.yourBudget', 'tu presupuesto')} (${formatCurrencySimple(spent)} ${t('notifications.of', 'de')} ${formatCurrencySimple(budget.amount)})`,
         `budget-${budget.id}`
       );
     }
@@ -329,16 +319,16 @@ export async function checkGoalMilestones() {
     // Newly achieved (between 95% and 100%)
     if (percentage >= 100 && goal.currentAmount > 0) {
       showLocalNotification(
-        '🎉 Meta alcanzada: ' + goal.name,
-        `¡Felicidades! Completaste tu meta de ahorro de ${formatCurrencySimple(goal.targetAmount, goal.currency)}`,
+        `🎉 ${t('notifications.goalAchieved', 'Meta alcanzada')}: ${goal.name}`,
+        `${t('notifications.congrats', '¡Felicidades!')} ${t('notifications.completedGoal', 'Completaste tu meta de ahorro de')} ${formatCurrencySimple(goal.targetAmount, goal.currency)}`,
         `goal-${goal.id}`
       );
     }
     // 50% milestone
     else if (percentage >= 50 && percentage < 55) {
       showLocalNotification(
-        '🏆 ¡Vas por buen camino!',
-        `Llevas el ${Math.round(percentage)}% de tu meta "${goal.name}"`,
+        `🏆 ${t('notifications.onTrack', '¡Vas por buen camino!')}`,
+        `${t('notifications.youHave', 'Llevas el')} ${Math.round(percentage)}% ${t('notifications.ofGoal', 'de tu meta')} "${goal.name}"`,
         `goal-half-${goal.id}`
       );
     }

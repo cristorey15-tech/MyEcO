@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useConvertedBalances } from '@/hooks/useConvertedBalances';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, getAccountBalance } from '@/lib/db';
-import { formatCurrency, batchConvertAmounts, cn } from '@/lib/utils';
+import { db } from '@/lib/db';
+import { formatCurrency, cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/useAppStore';
 import { useConfirm } from '@/hooks/useConfirm';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -41,8 +42,7 @@ export function Accounts() {
   const navigate = useNavigate();
   const accounts = useLiveQuery(() => db.accounts.toArray());
   const allTransactions = useLiveQuery(() => db.transactions.toArray());
-  const [balances, setBalances] = useState<Record<number, number>>({});
-  const [convertedBalances, setConvertedBalances] = useState<Record<number, number>>({});
+  const { balances, convertedBalances, totalBalance: convertedTotalBalance, ratesReady } = useConvertedBalances(accounts);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -90,46 +90,7 @@ export function Accounts() {
     return Object.keys(errors).length === 0;
   };
 
-  useEffect(() => {
-    if (!accounts || accounts.length === 0) return;
-    let cancelled = false;
-    (async () => {
-      // Auto-fetch exchange rates if none exist yet
-      const count = await db.exchangeRates.count();
-      if (count === 0) {
-        const { fetchAllRates } = await import('@/lib/exchangeRateService');
-        const result = await fetchAllRates();
-        if (!result.success) {
-          console.warn('Auto-fetch rates failed in Accounts:', result.errors.join(', '));
-        }
-      }
-      if (cancelled) return;
 
-      const results = await Promise.all(
-        accounts.map(async (acc) => {
-          const balance = await getAccountBalance(acc.id!);
-          return { id: acc.id!, balance, currency: acc.currency };
-        })
-      );
-      if (cancelled) return;
-
-      const newBalances: Record<number, number> = {};
-      results.forEach(r => { newBalances[r.id] = r.balance; });
-      setBalances(newBalances);
-
-      // Convert all balances to default currency
-      const converted = await batchConvertAmounts(
-        results.map(r => ({ amount: r.balance, from: r.currency })),
-        defaultCurrency
-      );
-      if (cancelled) return;
-
-      const newConverted: Record<number, number> = {};
-      results.forEach((r, i) => { newConverted[r.id] = converted[i]; });
-      setConvertedBalances(newConverted);
-    })().catch(err => console.error('Error loading account balances in Accounts:', err));
-    return () => { cancelled = true; };
-  }, [accounts, defaultCurrency]);
 
   const openNewModal = () => {
     setEditingAccount(null);
@@ -200,7 +161,7 @@ export function Accounts() {
   };
 
   const visibleAccounts = accounts?.filter(a => showArchived || !a.isArchived) || [];
-  const totalBalance = accounts?.reduce((sum, acc) => sum + (convertedBalances[acc.id!] || 0), 0) || 0;
+  const totalBalance = convertedTotalBalance;
 
   const accountTypeOptions = ACCOUNT_TYPES.map(at => ({
     value: at.value,
