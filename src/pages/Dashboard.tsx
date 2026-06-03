@@ -103,10 +103,12 @@ export function Dashboard() {
   // Process monthly transactions
   useEffect(() => {
     if (!monthlyTransactions || !categories) return;
+    let cancelled = false;
     batchConvertAmounts(
       monthlyTransactions.map(t => ({ amount: t.amount, from: t.currency })),
       defaultCurrency
     ).then(converted => {
+      if (cancelled) return;
       let incomeSum = 0;
       let expenseSum = 0;
       const spendingByCat: Record<number, number> = {};
@@ -135,8 +137,8 @@ export function Dashboard() {
 
       if (categories) {
         calculateFiftyThirtyTwenty(monthlyTransactions, categories, defaultCurrency)
-          .then(setFiftyThirtyTwentyData)
-          .catch(() => setFiftyThirtyTwentyData(null));
+          .then(result => { if (!cancelled) setFiftyThirtyTwentyData(result); })
+          .catch(() => { if (!cancelled) setFiftyThirtyTwentyData(null); });
       }
 
       if (monthlyBudgets && monthlyBudgets.length > 0) {
@@ -167,7 +169,10 @@ export function Dashboard() {
       } else {
         setBudgetComparison([]);
       }
-    }).catch(err => console.error('Error converting monthly transactions:', err));
+    }).catch(err => {
+      if (!cancelled) console.error('Error converting monthly transactions:', err);
+    });
+    return () => { cancelled = true; };
   }, [monthlyTransactions, defaultCurrency, categories, monthlyBudgets]);
 
   const spendingData = convertedSpendingData;
