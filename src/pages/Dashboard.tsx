@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToastStore } from '@/stores/useToastStore';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { calculateFiftyThirtyTwenty, type FiftyThirtyTwentyData } from '@/lib/fiftyThirtyTwenty';
+import { computeBudgetComparison } from '@/lib/budgetComparison';
 import { DashboardWidget } from '@/components/dashboard/DashboardWidget';
 import { WidgetCustomizer } from '@/components/dashboard/WidgetCustomizer';
 import {
@@ -142,18 +143,7 @@ export function Dashboard() {
       }
 
       if (monthlyBudgets && monthlyBudgets.length > 0) {
-        const comparison = monthlyBudgets.map(b => {
-          const spent = spendingByCat[b.categoryId] || 0;
-          const cat = categories.find(c => c.id === b.categoryId);
-          return {
-            categoryId: b.categoryId,
-            categoryName: cat?.name || '—',
-            categoryColor: cat?.color || '#6b7280',
-            budgeted: b.amount,
-            spent,
-            percentage: b.amount > 0 ? Math.round((spent / b.amount) * 100) : 0,
-          };
-        }).sort((a, b) => b.percentage - a.percentage);
+        const comparison = computeBudgetComparison(monthlyBudgets, categories, spendingByCat);
         setBudgetComparison(comparison);
 
         const overspent = comparison.filter(c => c.percentage > 100);
